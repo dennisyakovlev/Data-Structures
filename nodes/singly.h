@@ -13,18 +13,20 @@ struct Node {
 	using data_t = T;                      
 
 	Node() : v_data{}, v_next { nullptr } {}
+	Node(const data_t data, Node* next) : v_data{ std::move(data) }, 
+												v_next{ next } {}
 	Node(const data_t data, const Node* const next) : v_data{ std::move(data) }, 
-												v_next{ const_cast<const Node*>(next) } {}
+												v_next{ const_cast<Node*>(next) } {}							
 
 	bool is_empty() const {
 		return v_next == nullptr;
 	}
 
-	const Node* const& next() const {
+	const Node* const next() const {
 		return v_next;
 	}
-	const Node*& next() {
-		return const_cast<const Node*&>(static_cast<const Node&>(*this).next());
+	Node* next() {
+		return const_cast<Node*>(static_cast<const Node&>(*this).next());
 	}
 
 	const data_t& data() const {
@@ -45,5 +47,5 @@ struct Node {
 private:
 
 	data_t v_data;
-	const Node* v_next;
+	Node* v_next;
 };
