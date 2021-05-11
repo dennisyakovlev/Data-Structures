@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include "../nodes/singly.h"
+#include "list_iter.h"
 
 #include <iostream>
 
@@ -12,19 +13,21 @@ template<class T,
 class List {
 public:
 
+	using data_t = T;
 	using node_ptr = Node_T*;
 	using alloc_t = std::allocator_traits<Alloc>;
 	using alloc_void = typename alloc_t::const_void_pointer;
+	using iterator = ListIterator<List>;
 
 	List() : alloc{} {
 		new_end();
-		new_node(alloc, first, end, T{}, end);
+		new_node(alloc, first, end_v, T{}, end_v);
 	}
 
 	List(std::initializer_list<T> lis) : alloc{} {
 		new_end();
 
-		auto last = end;
+		auto last = end_v;
 		node_ptr curr = nullptr;
 		for (auto iter = std::rbegin(lis); iter != std::rend(lis); ++iter) {
 			new_node(alloc, curr, last, *iter, last);
@@ -34,12 +37,19 @@ public:
 		first = curr;
 	}
 
+	auto begin() {
+		return ListIterator<List>(first);
+	}
+	auto end() {
+		return ListIterator<List>(end_v);
+	}
+
 	auto& ahlie() {
 		return first;
 	}
 
 	auto& mhm() {
-		return end;
+		return end_v;
 	}
 
 private:
@@ -54,8 +64,8 @@ private:
 	}
 
 	void new_end() {
-		alloc_single(end, alloc);
-		construct_single(alloc, end);
+		alloc_single(end_v, alloc);
+		construct_single(alloc, end_v);
 	}
 
 	template<typename... Args>
@@ -64,7 +74,7 @@ private:
 		construct_single(allocator, ptr, args...);
 	}
 
-	node_ptr end;
+	node_ptr end_v;
 	node_ptr first;
 	Alloc alloc;
 
