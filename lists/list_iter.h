@@ -25,7 +25,7 @@ public:
 		return ptr == rhs.ptr;
 	}
 	bool operator!=(const ConstListIterator rhs) const {
-		return ptr != rhs.ptr;
+		return !(*this == ptr);
 	}
 
 	node_ptr ptr;
@@ -38,28 +38,26 @@ public:
 
 	using node_ptr = typename List_T::node_ptr;
 	using data_t = typename List_T::data_t;
+	using base = ConstListIterator<List_T>;
 
 	ListIterator(node_ptr node_ptr) : ConstListIterator<List_T>{ node_ptr } {}
 
 	data_t& operator*() {
-		return ptr->data();
+		return const_cast<data_t&>(base::operator*());
 	}
 
 	ListIterator& operator++() {
-		ptr = ptr->next();
-		return *this;
+		return static_cast<ListIterator&>(base::operator++());
 	}
 	ListIterator operator++(int) {
 		return ++(*this);
 	}
 
-	bool operator==(const ListIterator rhs) {
-		return ptr == rhs.ptr;
+	bool operator==(const ListIterator rhs) const {
+		return static_cast<base>(*this) == static_cast<base>(rhs);
 	}
-	bool operator!=(const ListIterator rhs) {
-		return ptr != rhs.ptr;
+	bool operator!=(const ListIterator rhs) const {
+		return !(*this == rhs);
 	}
-
-	node_ptr ptr;
 
 };
