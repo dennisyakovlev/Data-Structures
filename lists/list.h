@@ -5,8 +5,6 @@
 #include "../nodes/singly.h"
 #include "list_iter.h"
 
-#include <iostream>
-
 template<class T, 
 	typename Node_T = Node<T>, 
 	typename Alloc = std::allocator<Node_T>>
@@ -18,6 +16,7 @@ public:
 	using alloc_t = std::allocator_traits<Alloc>;
 	using alloc_void = typename alloc_t::const_void_pointer;
 	using iterator = ListIterator<List>;
+	using const_iterator = ConstListIterator<List>;
 
 	List() : alloc{} {
 		new_end();
@@ -37,19 +36,17 @@ public:
 		first = curr;
 	}
 
-	auto begin() {
+	iterator begin() {
 		return ListIterator<List>(first);
 	}
-	auto end() {
+	const_iterator begin() const {
+		return ConstListIterator<List>(first);
+	}
+	iterator end() {
 		return ListIterator<List>(end_v);
 	}
-
-	auto& ahlie() {
-		return first;
-	}
-
-	auto& mhm() {
-		return end_v;
+	const_iterator end() const {
+		return ConstListIterator<List>(end_v);
 	}
 
 private:
