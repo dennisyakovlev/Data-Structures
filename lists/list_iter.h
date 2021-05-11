@@ -25,7 +25,7 @@ public:
 		return ptr == rhs.ptr;
 	}
 	bool operator!=(const ConstListIterator rhs) const {
-		return !(*this == ptr);
+		return ptr != rhs.ptr;
 	}
 
 	node_ptr ptr;
@@ -57,7 +57,7 @@ public:
 		return static_cast<base>(*this) == static_cast<base>(rhs);
 	}
 	bool operator!=(const ListIterator rhs) const {
-		return !(*this == rhs);
+		return static_cast<base>(*this) != static_cast<base>(rhs);
 	}
 
 };
