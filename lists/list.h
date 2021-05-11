@@ -22,18 +22,12 @@ public:
 		new_end();
 		new_node(alloc, first, end_v, T{}, end_v);
 	}
-
 	List(std::initializer_list<T> lis) : alloc{} {
-		new_end();
-
-		auto last = end_v;
-		node_ptr curr = nullptr;
-		for (auto iter = std::rbegin(lis); iter != std::rend(lis); ++iter) {
-			new_node(alloc, curr, last, *iter, last);
-			last = curr;
-		}
-
-		first = curr;
+		first = construct_range(alloc, lis.begin(), lis.end());
+	}
+	template<typename Iter>
+	List(Iter start, Iter ending) : alloc{} {
+		first = construct_range(alloc, start, ending);
 	}
 
 	iterator begin() {
@@ -58,6 +52,20 @@ private:
 	template<typename... Args>
 	void construct_single(Alloc& allocator, node_ptr& ptr, const Args... args) {
 		alloc_t::construct(allocator, ptr, args...);
+	}
+
+	template<typename Iter>
+	node_ptr construct_range(Alloc& allocator, Iter start, Iter ending) {
+		node_ptr n = nullptr;
+		if (start == ending) {
+			new_end();
+			return end_v;
+		}
+
+		auto data = *start;
+		auto next = construct_range(allocator, ++start, ending);
+		new_node(alloc, n, next, data, next);
+		return n;
 	}
 
 	void new_end() {
