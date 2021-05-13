@@ -1,0 +1,271 @@
+Design Lessons at commit 0f02700 - 2021/05/12:
+
+What went wrong when designing the Node, List, and Iterator classes? 
+What did you do right?
+What things should you think about before designed another class to avoid the same mistakes?
+
+Node:
+	Questions to Think About)
+		Q: Should Node be a complete type?
+		Discussion: No. Does not need to be since its internal.
+
+		Q: Should Node use an allocator?
+		Discussion: No. Node does not manage resources.
+
+		Q: Should node values be modifyable?
+		Discussion: Yes. The list should be able to change which
+		    	    node is next and the data contained in the node.
+			    	Consequence of iterator being output.
+
+		Q: How should data and next be stored?
+		Discussion: data should be stored as a copy of what was
+		   	    	passed to the node, since the data stored in the 
+		    	    container should outlast the variables scope. next
+		    	    should be a pointer to the next node.
+
+	For What) What is the node going to be used for? A singly linked list. Should create it to suite
+the list class.
+		- objects without default construction should be allowed
+		- objects with explicit constructors should be allowed
+		- move semantics
+		- account for string literals and pointers
+		- do *not* account for references
+		- needs way to signify and end case (head or tail of list)
+
+	Attributes) Which items *must* be stored?
+		Implemented:
+			data:
+				data of node
+			Node*:
+				pointer to next node
+			
+		New Implementation:
+			same
+
+	Constructors) Think about which constructors are *needed* and what implications they have.
+		Implemented:
+			Node():
+				Having default implies having default values for the next pointer and
+				data stored. Implies the data type should be default constructable.
+			Node(const data, const Node* const):
+				Pass by value of data allows for decay arrays and functions.
+				Calls move constructor compared to const data&.
+
+		New Implementation:
+			Node():
+				Delete
+			Node(const data&, Node*):
+				For pointers, raw arrays, and string literals, list should
+				properly deduce type to be used in Node. Using const& is 
+				not concern. Modifying next* is not concern since its list's job.
+			Node(data&&, Node*):
+				Move for data.
+
+	Functions) Which functions are *needed*?
+		Implemented:
+			is_empty -> bool:
+				whether the node is empty
+			next -> Node*:
+				retrieve pointer to next node
+			data -> data&:
+				retrieve data of node
+			set_next(const Node* const):
+				set pointer to next node
+			set_data(const data&):
+				set data of node
+
+		New Implementation:
+			is_empty -> bool:
+				whether the node is empty
+			
+	Implementation) How would the Node be used? Does the current implementation of node allow this
+usage? Does the new implementation of node allow this usage?
+		- Everything should be public, since it is helper class to list
+		  and there is no need to distinct public/ private interface
+		- No need to consider const or non cost since list will take
+		  care of it
+		- No need to consider change_data() function since list takes
+		  cares of perfect forwaring
+		- Nodes should be initializable in a start to end manner. Currently,
+		  Node needs pointer to next node, which requires end to start
+		  initialization.		  
+
+
+
+List:
+	Questions to Think About)
+		Q: Should references be accounted for?
+		Discusiion: No.
+
+		Q: Should pointers and decay types be accounted for?
+		Discussion: Yes. If user stores a pointer which is deleted
+			    	then it is their issue.
+
+		Q: Should iterator range be validated for functions?
+		Discussion: Yes. This is expensive. Possibly allow user
+			    	to define macro to disble check.
+
+		Q: Should Iter constructor deduce to type?
+		Discussion: Most likely. It is unlikely
+
+		Q: Should keep active track of list size?
+		Discussion: Maybe. This can be expensive i guess. Possibly
+			    	allow user to define macro to choose to 
+			    	enable/ disable active tracking of size.
+
+		Q: Should check when inserting node for max
+		   size overflow?
+		Discussion: Yes. This can be expensive i guess. Possibly
+			    	allow user to define macro to disable check.
+
+	For What) What will the list be used for? Storing arbitrary values in a container.
+		- the same things as accounted for in node
+		- should be complete type
+		- data type must be copyable is minimum requirement for
+		  the values to be stored.
+
+	Attributes) Which items *must* be stored?
+		Implemented:
+			Node*:
+				head of list
+			Node*:
+				tail of list
+			allocator<Node>:
+				allocator to manage memory for nodes
+
+		New Implementation:
+			Node*:
+				head of list
+			Node*:
+				tail of list
+			allocator<Node>:
+				allocator to manage memory for nodes
+			std::size_t: *optional*
+				size of the list. does not need to be
+				unbounded type since size_t is almost
+				certainly not the factor limiting the
+				size of the list, memory or processing
+				time is.
+				
+			
+
+	Constructors) Think about which constructors are *needed* and what implications they have.
+		Implemented:
+			List():
+				Current default requires data type to be default initializable
+			List(initializer_list):
+				For initializer list
+			List(Iter, Iter):
+				For iterator range.
+
+		New Implementation:
+			List():
+				Do not initialize any values to default.
+			List(initializer_list):
+				Properly deduces types
+			List(Iter, Iter):
+				Only enable if Iter is a valid forward iterator
+
+	Functions) Which functions are *needed*? Which functions are *wanted* (marked with #)?
+		Implemented:
+			begin -> Iterator:
+				return head of list
+			end -> Iterator:
+				return one past end of list
+
+		New Implementation:
+			begin -> Iterator:
+				return head of list
+			end -> Iterator:
+				return one past end of list
+			insert(data, Iterator):
+				inserts data after the iterator
+			insert_head(data):
+				insert data as the new head of the list
+			insert_tail(data):
+				insert data as the tail of the list
+			remove(Iterator):
+				remove element after iterator
+			# merge(Iterator, Iterator, Iterator):
+				merge [iter1, iter2) into the element after
+				iter3
+
+	Implementation) How would list be used? Does the current implementation of list allow this
+usage? Does the new implementation of list allow this usage?
+		- Seperate public/ private interfaces
+		- Macro to allow choosing to keep track of size
+		- Macro to allow range verification
+
+	Notes)
+		- the reason Alloc is a class template parameter is so that a user can choose their
+		  allocator or just use the default one. This means you actually have to you know let
+		  the user use their custom allocator.
+		- the list does not have to conform to the standard, which allows neglect of certain
+		  assertions, checks and constraints
+			- example is being able to say two lists are equal as long as their values
+			  are equal, even if their allocators are not
+
+
+
+Iterator:
+	Questions to Think About)
+		Q: Should const and non const iterators be two 
+		   different classes?
+		Discussion: Yes. Having one would mean having a non const
+			    	class, and const type would be const Iter,
+			    	which means it would not be able to iterate.
+			    	Cannot have const class since const -> non const
+			    	is undefined.
+
+		Q: Would the iterator be able to be used to construct
+		   other STL containers?
+		Discussion: Well idk. There is no specification for what
+			    	the deduction guides specify as the required
+			    	iterator. As in what members must it have, 
+			    	which operators must be defined? There is no 
+			    	point in making implementation specific iterators 
+			    	to satisfy the requirements for such a small
+			    	edge case.
+
+		Q: Should a reverse iterator exist?
+		Discussion: No. Not in a singly linked list
+
+		Q: What should the iterator type be?
+		Discussion: Forward iterator. Should be deferencable as an
+			    	lvalue to support assignment to list. Should be
+			    	default constructable.
+
+	For What) What will the iterator be used for? To provide an iterator for the list class.
+		- to give users a way of iterating through the list
+		- legacy forward iterator for singly linked list
+
+	Attributes) Which items *must* be stored?
+		Implemented:
+			Node*:
+				node pointer to the current node
+
+		New Implementation:
+			same
+
+	Constructors) Think about which constructors are *needed* and what implications they have.
+		Implemented:
+			Iterator(Node*):
+				construct iterator from node pointer which will
+				be start of the iterator
+
+		New Implementation:
+			Iterator():
+				default construct iterator
+			Iterator(Node*):
+				
+
+	Functions) Which functions are *needed*?
+		Implemented:
+			None
+
+		New Implementation:
+			same
+
+	Implementation) How would iterator be used? Does the current implementation of iterator
+allow this usage? Does the new implementation of iterator allow this usage?
+		- there should be different iterators for const and non const
