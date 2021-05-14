@@ -1,5 +1,7 @@
 Standard allocator which meets c++20 requirements.
 
+See design lessons for why this is incompletes
+
 --- BEGIN ---
 
 template<typename T>
