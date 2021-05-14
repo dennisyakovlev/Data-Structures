@@ -16,6 +16,10 @@ public:
 	using difference_type = STD ptrdiff_t;
 
 	Allocator() {}
+	Allocator(const Allocator&) {}
+	template<typename U>
+	Allocator(const Allocator<U>&) {}
+	~Allocator() = default;
 
 	T* allocate(size_type n) {
 		return static_cast<T*>(::operator new(n * sizeof(T)));
@@ -25,3 +29,13 @@ public:
 	}
 
 };
+
+template<typename T, typename Other>
+bool operator== (const Allocator<T>& l, const Allocator<Other> r) {
+	return sizeof(T) == sizeof(Other);
+}
+
+template<typename T, typename Other>
+bool operator!= (const Allocator<T>& l, const Allocator<Other> r) {
+	return !(l == r);
+}
