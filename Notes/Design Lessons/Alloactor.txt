@@ -1,0 +1,52 @@
+Design Lessons at commit 22bf01e - 2021/05/14:
+
+What went wrong when designing the Allocator class? 
+What did you do right?
+What things should you think about before designed another class to avoid the same mistakes?
+
+NOTE: Every time before you make class double check that you have EVERYTHING you need.
+      Design, interface, operators, attributes. Then check again. You missed the
+      implementation of copy constructors and operators required by the standard.
+
+Allocator:
+	Questions to Think About)
+
+	For What) What will the Allocator be used for? To manage memory.
+
+	Attributes) Which items *must* be stored?
+		Implemented:
+			none
+
+		New Implementation:
+			same
+
+	Constructors) Think about which constructors are *needed* and what implications they have.
+		Implemented:
+			Allocator():
+				default construct allocator
+
+		New Implementation:
+			Allocator():
+				default construct allocator - only way to create
+                Allocator instance
+            Allocator(const Allocator&):
+                copy constructor
+            template<typename T>
+            Allocator(const Allocator<T>&):
+                copy constructor for allocator of another type
+
+	Functions) Which functions are *needed*?
+		Implemented:
+			allocate(size_t) -> T*:
+                alloc for n elements of type T and return
+                pointer to start
+            deallocate(T*, size_t):
+                deallocate n elements starting at ptr
+
+		New Implementation:
+			same
+
+	Implementation) How would Allocator be used? Does the current implementation of Allocator
+allow this usage? Does the new implementation of Allocator allow this usage?
+		- used as standard allocator
+        - currently missing copy constructors and operators == and !=
