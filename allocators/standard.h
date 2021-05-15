@@ -32,10 +32,5 @@ public:
 
 template<typename T, typename Other>
 bool operator== (const Allocator<T>& l, const Allocator<Other> r) {
-	return sizeof(T) == sizeof(Other);
-}
-
-template<typename T, typename Other>
-bool operator!= (const Allocator<T>& l, const Allocator<Other> r) {
-	return !(l == r);
+	return true; // has no internal state, always equal
 }
