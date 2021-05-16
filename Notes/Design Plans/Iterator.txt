@@ -1,0 +1,73 @@
+Iterface for iterators of List class 
+
+Two iterators
+    1) mutable iterator
+    2) constant iterator
+
+mutable iterator should meet requirements of
+    - iterator traits 27.4.1
+    - iterator 27.2.2
+    - input iterator 27.2.3
+    - output iterator 27.2.4
+    - forward iterator 27.2.5
+
+constant iterator should meet requirments of
+    - iterator traits 27.4.1
+    - iterator 27.2.2
+    - input iterator 27.2.3
+    - forward iterator 27.2.5
+
+Notes:
+    - no reverse iterator
+    - both the mutable and constant iterators have common
+      members. Have an iterator base
+    - mutable -> constant allowed but not contant -> mutable
+      so mutable inherts from constant
+    - iterator_traits<Iterator> is automatically defined
+      when the 5 required typedefs are defined
+
+template<typename List>
+struct Base {
+
+};
+
+template<typename List>
+struct ConstListIterator : Base {
+
+	using iterator_category = std::forward_iterator_tag;
+	using difference_type = std::ptrdiff_t;
+	using value_type = List::value_type;
+	using pointer = std::allocator_traits<List::allocator_type>::pointer;
+	using reference = List::reference&;
+
+    using const_reference = const List&;
+
+    // Operators
+    const_reference operator* ();
+    ConstListIterator& operator++ ();
+    ConstListIterator operator++ (int);
+    pointer operator-> ();
+
+};
+
+template<typename List>
+struct ListIterator : ConstListIterator {
+
+	using iterator_category = std::forward_iterator_tag;
+	using difference_type = std::ptrdiff_t;
+	using value_type = List::value_type;
+	using pointer = std::allocator_traits<List::allocator_type>::pointer;
+	using reference = List::reference&;
+
+    using const_reference = const List&;
+
+    // Operators
+    const_reference operator* ();
+    Iterator& operator++ ();
+    Iterator operator++ (int);
+    pointer operator-> ();
+
+};
+
+template<typename List>
+bool operator!= (ConstListIterator<List>, ConstListIterator<List>);
