@@ -7,36 +7,28 @@
 #define _std  std::
 
 template<typename List>
-struct Node {
+struct _singly_list_node {
 
     using value_type = typename List::value_type;
-    using pointer = typename List::pointer;
-    using next = Node*;
+    using next = _singly_list_node*;
 
-    explicit Node(const value_type&);
-    explicit Node(value_type&&);
-    explicit Node(const Node&);
-    explicit Node(Node&&);
-    ~Node() = default;
+    bool empty() {
+        return next_v == nullptr;
+    }
 
-    Node& operator= (const Node&);
-    Node& operator= (Node&&);
-
-    bool empty();
-
-
+    value_type data_v;
+    next next_v;
 
 };
 
 template<typename List>
-bool operator== (const Node<List>&, const Node<List>&);
+bool operator== (const _singly_list_node<List>& l, const _singly_list_node<List>& r) {
+    return (l.next_v == r.next_v) && (l.data_v == r.data_v);
+}
 template<typename List>
-bool operator!= (const Node<List>&, const Node<List>&);
-
-
-template<typename T, typename Alloc>
-class List;
-
+bool operator!= (const _singly_list_node<List>& l, const _singly_list_node<List>& r) {
+    return !(l == r);
+}
 
 template<typename List>
 struct Base {
@@ -99,9 +91,9 @@ public:
     using reference = T&;
     using const_reference = const T&;
     using allocator_type = Alloc; //order matters???
-    using iterator = ListIterator<List<T, Alloc>>;
-    using const_iterator = ConstListIterator<List<T, Alloc>>;
-    using difference_type = typename Base<List<T, Alloc>>::difference_type;
+    using iterator = ListIterator<List>;
+    using const_iterator = ConstListIterator<List>;
+    using difference_type = typename Base<List>::difference_type;
     using size_type = _std size_t;
 
     // Constructors
