@@ -1,7 +1,7 @@
 Interface for List class
 
 Want to meet requirments of 
-    - allocator aware 26.2.1
+    - allocator aware container 26.2.1
     - container 26.2.1
     - sequence container 26.2.3
 
@@ -23,17 +23,13 @@ public:
     List(const allocator_type& = allocator_type{});
     List(const List&, const allocator_type& = allocator_type{});
     List(List&&, const allocator_type& = allocator_type{});
-    ~List(const allocator_type& = allocator_type{});
     List(size_type, const value_type&, const allocator_type& = allocator_type{});
     template<typename Iter>
     List(Iter, Iter, const allocator_type& = allocator_type{});
-    List(initializer_list<T><T>, const allocator_type& = allocator_type{});
+    List(initializer_list<T>, const allocator_type& = allocator_type{});
+    ~List(const allocator_type& = allocator_type{});
 
     // Operators
-    template<typename T2, typename Alloc2>
-    bool operator== (const List<T2, Alloc2>&, const List<T2, Alloc2>&);
-    template<typename T2, typename Alloc2>
-    bool operator!= (const List<T2, Alloc2>&, const List<T2, Alloc2>&);
     List& operator= (initializer_list<T>)
     List& operator= (const List&);
     List& operator= (List&&);
@@ -63,3 +59,8 @@ public:
     void swap(List);
 
 };
+
+template<typename T>
+bool operator== (const List&, const List&);
+template<typename T>
+bool operator!= (const List&, const List&);

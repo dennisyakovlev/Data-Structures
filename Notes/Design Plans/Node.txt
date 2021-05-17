@@ -12,9 +12,20 @@ struct Node {
     using pointer = List::pointer;
     using next = Node*;
 
-    Node(const value_type&);
-    Node(value_type&&);
+    explicit Node(const value_type&);
+    explicit Node(value_type&&);
+    explicit Node(const Node&);
+    explicit Node(Node&&);
+    ~Node() = default;
+
+    Node& operator= (const Node&);
+    Node& operator= (Node&&);
 
     bool empty();
 
 };
+
+template<typename List>
+bool operator== (const Node<List>&, const Node<List>&);
+template<typename List>
+bool operator!= (const Node<List>&, const Node<List>&);

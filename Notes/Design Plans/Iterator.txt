@@ -19,20 +19,13 @@ constant iterator should meet requirments of
 
 Notes:
     - no reverse iterator
-    - both the mutable and constant iterators have common
-      members. Have an iterator base
     - mutable -> constant allowed but not contant -> mutable
       so mutable inherts from constant
     - iterator_traits<Iterator> is automatically defined
       when the 5 required typedefs are defined
 
 template<typename List>
-struct Base {
-
-};
-
-template<typename List>
-struct ConstListIterator : Base {
+struct ConstListIterator {
 
 	using iterator_category = std::forward_iterator_tag;
 	using difference_type = std::ptrdiff_t;

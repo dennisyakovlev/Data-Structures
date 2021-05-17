@@ -8,6 +8,7 @@ Node:
 	Questions to Think About)
 		Q: Should Node be a complete type?
 		Discussion: No. Does not need to be since its internal.
+		Update: Yes. You want move semantics.
 
 		Q: Should Node use an allocator?
 		Discussion: No. Node does not manage resources.
@@ -104,14 +105,17 @@ List:
 		Q: Should iterator range be validated for functions?
 		Discussion: Yes. This is expensive. Possibly allow user
 			    	to define macro to disble check.
+		Update: No. Assume user gives valid range. (standard)
 
 		Q: Should Iter constructor deduce to type?
-		Discussion: Most likely. It is unlikely
+		Discussion: Most likely.
+		Update: Yes. Check if Iter is valid, if so, deduce.
 
 		Q: Should keep active track of list size?
 		Discussion: Maybe. This can be expensive i guess. Possibly
 			    	allow user to define macro to choose to 
 			    	enable/ disable active tracking of size.
+		Update: Yes. Required to give size in constant time. (standard)
 
 		Q: Should check when inserting node for max
 		   size overflow?
