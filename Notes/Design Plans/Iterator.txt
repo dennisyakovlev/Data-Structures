@@ -19,21 +19,28 @@ constant iterator should meet requirments of
 
 Notes:
     - no reverse iterator
+    - both the mutable and constant iterators have common
+      members. Have an iterator base
     - mutable -> constant allowed but not contant -> mutable
       so mutable inherts from constant
     - iterator_traits<Iterator> is automatically defined
       when the 5 required typedefs are defined
 
 template<typename List>
-struct ConstListIterator {
-
-	using iterator_category = std::forward_iterator_tag;
+struct Base {
+    
+    using iterator_category = std::forward_iterator_tag;
 	using difference_type = std::ptrdiff_t;
 	using value_type = List::value_type;
 	using pointer = std::allocator_traits<List::allocator_type>::pointer;
 	using reference = List::reference&;
 
     using const_reference = const List&;
+
+};
+
+template<typename List>
+struct ConstListIterator : Base<List> {
 
     // Operators
     const_reference operator* ();
@@ -44,15 +51,7 @@ struct ConstListIterator {
 };
 
 template<typename List>
-struct ListIterator : ConstListIterator {
-
-	using iterator_category = std::forward_iterator_tag;
-	using difference_type = std::ptrdiff_t;
-	using value_type = List::value_type;
-	using pointer = std::allocator_traits<List::allocator_type>::pointer;
-	using reference = List::reference&;
-
-    using const_reference = const List&;
+struct ListIterator : ConstListIterator<List> {
 
     // Operators
     const_reference operator* ();
@@ -62,5 +61,5 @@ struct ListIterator : ConstListIterator {
 
 };
 
-template<typename List>
-bool operator!= (ConstListIterator<List>, ConstListIterator<List>);
+template<typename Iter, typename = std::enable_if<std::is_base_of_v<Base, Iter>>>
+bool operator!= (Iter, Iter);
