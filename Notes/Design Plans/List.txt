@@ -60,7 +60,7 @@ public:
 
 };
 
+template<typename T, typename Alloc>
+bool operator== (const List<T, Alloc>&, const List<T, Alloc>&);
 template<typename T>
-bool operator== (const List&, const List&);
-template<typename T>
-bool operator!= (const List&, const List&);
+bool operator!= (const List<T, Alloc>&, const List<T, Alloc>&);
