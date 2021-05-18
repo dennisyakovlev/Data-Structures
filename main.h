@@ -99,7 +99,18 @@ bool operator!= (ConstListIterator<List> l, ConstListIterator<List> r) {
 
 
 
+template<typename T, typename U, typename = void>
+struct _both_same : _std false_type {};
 
+template<typename T, typename U>
+struct _both_same<T, U, _std is_same<T, U>> : _std true_type {};
+
+template<typename T, typename U> constexpr bool _both_same_v = _both_same<T, U>::value;
+
+template<typename T1, typename T2, 
+         typename Alloc1, typename Alloc2, 
+         typename = _std enable_if<_both_same_v<T1, T2> && _both_same_v<Alloc1, Alloc2>>>
+struct _list_same {};
 
 template<typename T, typename Alloc = _std allocator<_singly_list_node<T>>>
 class List {
@@ -119,15 +130,25 @@ public:
 
     List() : head{ nullptr }, tail{ nullptr }, allocator{} {}
     List(const List& rhs) {
-        // should delete elements before hand
-        _construct_at_start(rhs.cbegin(), rhs.cend());
+        _construct_range(head, tail, rhs.cbegin(), rhs.cend());
     }
-    List(List&&);
+    /*
+    List(List&& r) : size_v{ r.size_v }, allocator{} {
+        head = r.head;
+        tail = r.tail;
+        r.head = nullptr;
+        r.tail = nullptr;
+    }
+    */
+    template<typename T2, typename Alloc2 = std::allocator<T2>>
+    List(List<T2, Alloc2>&& r) {
+
+    }
     List(size_type, const value_type&);
     template<typename Iter>
     List(Iter, Iter);
     List(_std initializer_list<T> lis) {
-        _construct_at_start(lis.begin(), lis.end());
+        _construct_range(head, tail, lis.begin(), lis.end());
     }
     ~List() {}
 
@@ -160,65 +181,91 @@ public:
     iterator insert(const_iterator, const value_type&);
     iterator insert(const_iterator, value_type&&);
     iterator insert(const_iterator, size_type, const value_type&);
-    iterator insert(const_iterator, iterator, iterator);
+    template<typename Iter>
+    void insert(const_iterator pos, Iter start, Iter end) {
+        
+        node_pointer curr, ahead;
+        _create_new_start(curr, ahead, start);
+        _construct_iterate_range(curr, ahead, start, end);
+
+        auto temp = pos.ptr->next_v;
+        pos.ptr->next_v = curr;
+        curr->next_v = temp;
+
+    }
     iterator insert(const_iterator, _std initializer_list<T>);
     size_type max_size();
     size_type size();
     void swap(List);
 
-//private:
+private:
 
     node_pointer _allocate_single() {
         return _std allocator_traits<allocator_type>::allocate(allocator, 1);
     }
+    
     template<typename... Args>
     void _construct_single(node_pointer ptr, Args... args) {
         _std allocator_traits<allocator_type>::construct(allocator, ptr, args...);
     }
 
     template<typename Iter>
-    void _construct_at_start(Iter start, Iter end) {
-        node_pointer curr = _allocate_single();
-        node_pointer ahead = _allocate_single();
-        _construct_single(curr, *start, ahead);
-        start++;
+    void _create_new_start(node_pointer& current, node_pointer& ahead, Iter& i) {
+        current = _allocate_single();
+        ahead = _allocate_single();
+        _construct_single(current, *i, ahead);
+        ++i;
+    }
 
-        head = curr;
-
-        while (start != end) {
+    template<typename Iter>
+    void _construct_iterate_range(node_pointer& curr, node_pointer& ahead, Iter start, Iter end) {
+        for (; start != end; ++start) {
             curr = ahead;
             ahead = _allocate_single();
             _construct_single(curr, *start, ahead);
-            ++start;
-        }
-
-        tail = ahead;
-        
-    }
-
-    template<typename Iter, typename This_Iter>
-    void _construct_range_other(This_Iter into_start, Iter start, Iter end) {
-        node_pointer curr;
-        for (; start != end; ++start) {
-            
         }
     }
 
-    /*
-    template<typename Iter>
-    void _construct_range(Iter start, Iter end, _std bidirectional_iterator) {
-        node_pointer curr;
-        for (; end != start; --end) {
+    template<typename IterFrom>
+    void _construct_range(node_pointer& into_start, node_pointer& into_end,
+                          IterFrom from_start, IterFrom from_end) {
+        node_pointer curr, ahead;
+        _create_new_start(curr, ahead, from_start);
 
+        into_start = curr;
+        _construct_iterate_range(curr, ahead, from_start, from_end);
+        into_end = ahead;
+    }
+
+
+    void _destroy_single(node_pointer ptr) {
+        _std allocator_traits<allocator_type>::destroy(allocator, ptr);
+    }
+
+    void _deallocate_single(node_pointer ptr) {
+        _std allocator_traits<allocator_type>::deallocate(allocator, ptr, 1);
+    }
+
+    void _deallocate_all() {
+        for (; head != tail; ++head) {
+            _destroy_single(head);
+            _deallocate_single(head);
         }
     }
-    */
+
+    void _deallocate_range(const_iterator, const_iterator) {
+
+    }
+
     node_pointer head;
     node_pointer tail;
     Alloc allocator;
     size_type size_v;
 
 };
+
+template<typename T>
+List(List<T>&&)->List<T>;
 
 template<typename T, typename Alloc>
 bool operator== (const List<T, Alloc>&, const List<T, Alloc>&);
