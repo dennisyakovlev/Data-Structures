@@ -12,7 +12,7 @@
 #include <iostream>
 #define print(x) std::cout << x << std::endl;
 
-// rebind traits --------------------------------
+// traits ---------------------------------------
 template<typename from, typename to>
 using _rebind_pointer = typename _std pointer_traits<from>::template rebind<to>;
 
@@ -55,44 +55,19 @@ struct _node_store {
 	pointer next_v;
 };
 
-template<typename Alloc>
-struct _node_mem {
-
-	using _alloc_traits = _std_alloc_traits<Alloc>;
-
-	using value_type = typename _alloc_traits::value_type;
-	using pointer = typename _alloc_traits::pointer;
-	using allocator_type = typename _alloc_traits::allocator_type;
-
-	static pointer _allocate(allocator_type& a) {
-		return _alloc_traits::allocate(a, 1);
-	}
-
-	template<typename... init_args>
-	static void _construct(allocator_type& a, pointer ptr, init_args&&... args) {
-		_alloc_traits::construct(a, ptr, args...);
-	}
-
-	static void _destroy(allocator_type& a, pointer ptr) {
-		_alloc_traits::destroy(a, ptr);
-	}
-
-	static void _deallocate(allocator_type& a, pointer ptr) {
-		_alloc_traits::deallocate(a, ptr, 1);
-	}
-};
-
-template<typename List, typename Alloc>
+template<typename List>
 struct ConstListIterator {
+
+	using _list_alloc = typename List::allocator_type;
 
 	using iterator_category = _std forward_iterator_tag;
 	using difference_type = _std ptrdiff_t;
 	using value_type = typename List::value_type;
-	using pointer = _pointer<_std_alloc_traits<Alloc>>;
+	using pointer = _pointer<_std_alloc_traits<_list_alloc>>;
 	using reference = typename List::reference;
 	
-	using _alloc_void_pointer = typename _std_alloc_traits<Alloc>::void_pointer;
-	using _node = _node_store<value_type, Alloc>;
+	using _alloc_void_pointer = typename _std_alloc_traits<_list_alloc>::void_pointer;
+	using _node = _node_store<value_type, _alloc_void_pointer>;
 	using _next = _rebind_pointer<_alloc_void_pointer, _node>;
 
 	ConstListIterator() : ptr{ nullptr } {}
@@ -116,10 +91,10 @@ struct ConstListIterator {
 	
 };
 
-template<typename List, typename Alloc>
-struct ListIterator : ConstListIterator<List, Alloc> {
+template<typename List>
+struct ListIterator : ConstListIterator<List> {
 
-	using base = ConstListIterator<List, Alloc>;
+	using base = ConstListIterator<List>;
 	using iterator_category = typename base::iterator_category;
 	using difference_type = typename base::difference_type;
 	using value_type = typename base::value_type;
@@ -143,8 +118,8 @@ struct ListIterator : ConstListIterator<List, Alloc> {
 
 };
 
-template<typename List, typename Alloc>
-bool operator!= (ConstListIterator<List, Alloc> l, ConstListIterator<List, Alloc> r) {
+template<typename List>
+bool operator!= (ConstListIterator<List> l, ConstListIterator<List> r) {
 	return l.ptr != r.ptr;
 }
 
@@ -158,8 +133,8 @@ public:
 	using reference = value_type&;
 	using allocator_type = Alloc;
 	using const_reference = const value_type&;
-	using iterator = ListIterator<List, allocator_type>;
-	using const_iterator = ConstListIterator<List, allocator_type>;
+	using const_iterator = ConstListIterator<List>;
+	using iterator = ListIterator<List>;
 	using size_type = _std size_t;
 
 	using _alloc_traits = _std_alloc_traits<allocator_type>;
@@ -168,29 +143,34 @@ public:
 	using _node_pointer = _pointer<_node>;
 	using _alloc_node = _rebind_allocator<allocator_type, _node>;
 	using _alloc_traits_node = _std_alloc_traits<_alloc_node>;
+	using _alloc_node_pointer = _pointer<_std_alloc_traits<_alloc_traits_node>>;
 
 	using difference_type = typename const_iterator::difference_type; // should be after _node_pointer
 
-	List(_std initializer_list<T> lis, allocator_type&) {
-		auto iter = lis.begin();
-		auto end = lis.end();
+private: // functions for constructors
+
+	template<typename Iter>
+	void _create_head_to_tail(Iter begin, Iter end) {
 
 		auto curr = _alloc_traits_node::allocate(_al_node, 1);
-		auto ahead = _alloc_traits_node::allocate(_al_node, 1);
-		_alloc_traits_node::construct(_al_node, curr, *iter, ahead);
-		++iter;
+		auto ahead = _alloc_traits_node::allocate(_al_node, 1); // to set next value for curr
+		_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
+		++begin;
 
 		_head = curr;
 
-		for (; iter != end; ++iter) {
+		for (; begin != end; ++begin) {
 			curr = ahead;
 			ahead = _alloc_traits_node::allocate(_al_node, 1);
-			_alloc_traits_node::construct(_al_node, curr, *iter, ahead);
+			_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
 		}
 
 		_tail = ahead;
+
 	}
-	~List() {
+
+	void _deallocate_head_to_tail() {
+
 		auto temp = _head;
 		for (; _head != _tail; _head = temp) {
 			temp = _head->next_v;
@@ -198,102 +178,89 @@ public:
 			_alloc_traits_node::deallocate(_al_node, _head, 1);
 		}
 
-		_alloc_traits_node::deallocate(_al_node, _tail, 1);
+		_alloc_traits_node::deallocate(_al_node, _tail, 1); // _tail not constructed
 
-	}
-
-/*
-private:
-
-	void _init_head_tail() {
-		tail = nullptr;
-		head = nullptr;
-	}
-
-	template<typename Iter>
-	void _create_from_range(allocator_type& al_data, _alloc_node& al_node, 
-							Iter begin, Iter end, _node_pointer& into_start, _node_pointer& into_end) {
-		auto curr = _alloc_single(al_node);
-		auto ahead = _alloc_single(al_node);
-
-		auto ptr = _alloc_single(al_data); // allocate for data type of list
-		_construct_single(al_data, ptr, *begin); // construct data type of list
-		++begin;
-
-		_construct_single(al_node, curr, ptr, ahead); // construct curr
-
-		into_start = curr;
-		for (; begin != end; ++begin) {
-			curr = ahead;
-			ahead = _alloc_single(al_node);
-
-			ptr = _alloc_single(al); // allocate for data type of list
-			_construct_single(al_data, ptr, *begin); // construct data type of list
-
-			_construct_single(al_node, curr, ptr, ahead);
-		}
-		into_end = ahead;
-
-	}
-
-	void _deallocate_all() {
-		_node_pointer next = nullptr;
-		while (head != tail) {
-			next = head->next_v;
-
-			_destroy_single(al, head->data_v);
-			_deallocate_single(al, head->data_v);
-
-			_destroy_single(al_node, head);
-			_deallocate_single(al_node, head);
-
-			head = next;
-		}
-		_destroy_single(al_node, tail);
-		_deallocate_single(al_node, tail);
 	}
 
 public:
 
 	List() {}
-	List(allocator_type& a) {}
-	List(_std initializer_list<T> lis) {
-		_init_head_tail();
-		_create_from_range(al, al_node, lis.begin(), lis.end(), head, tail);
+	List(const allocator_type&) {}
+
+private:
+
+	void _List_copy_construct(const_iterator begin, const_iterator end) {
+
+		_deallocate_head_to_tail();
+		_create_head_to_tail(begin, end);
+
 	}
-	List(_std initializer_list<T> lis, allocator_type& alloc) {
-		_init_head_tail();
-		_create_from_range(alloc, al_node, lis.begin(), lis.end(), head, tail);
+
+public:
+
+	List(const List& lis) {
+
+		_List_copy_construct(lis.cbegin(), lis.cend());
+
+	}
+	List(const List& lis, const allocator_type&) {
+
+		_List_copy_construct(lis.cbegin(), lis.cend());
+
+	}
+	List(_std initializer_list<T> lis) {
+
+		_create_head_to_tail(lis.begin(), lis.end());
+
+	}
+	List(_std initializer_list<T> lis, const allocator_type&) {
+
+		_create_head_to_tail(lis.begin(), lis.end());
+
 	}
 	~List() {
-		_deallocate_all();
+
+		_deallocate_head_to_tail();
+
 	}
 
-	template<typename alloc_t>
-	typename _node_mem<alloc_t>::pointer _alloc_single(alloc_t& a) {
-		return _node_mem<alloc_t>::_allocate(a);
+	void assign(iterator, iterator);
+	void assign(_std initializer_list<T>);
+	void assign(size_type, const value_type&);
+	iterator begin() {
+		return iterator(_head);
 	}
-
-	template<typename alloc_t, typename... init_args>
-	void _construct_single(alloc_t& a, typename _node_mem<alloc_t>::pointer ptr, init_args&&... args) {
-		_node_mem<alloc_t>::template _construct(a, ptr, args...);
+	const_iterator begin() const {
+		return const_iterator{ _head };
 	}
-
-	template<typename alloc_t>
-	void _destroy_single(alloc_t& a, typename _node_mem<alloc_t>::pointer ptr) {
-		_node_mem<alloc_t>::_destroy(a, ptr);
+	const_iterator cbegin() const {
+		return const_iterator{ _head };
 	}
-
-	template<typename alloc_t>
-	void _deallocate_single(alloc_t& a, typename _node_mem<alloc_t>::pointer ptr) {
-		_node_mem<alloc_t>::_deallocate(a, ptr);
+	iterator end() {
+		return iterator(_tail);
 	}
-
-	_node_pointer head;
-	_node_pointer tail;
-	allocator_type al;
-	_alloc_node al_node;
-*/
+	const_iterator end() const {
+		return const_iterator(_tail);
+	}
+	const_iterator cend() const {
+		return const_iterator(_tail);
+	}
+	void clear();
+	template<typename... Args>
+	iterator emplace(const_iterator, Args&&...);
+	bool empty();
+	iterator erease(const_iterator);
+	iterator erease(const_iterator, const_iterator);
+	allocator_type get_allocator();
+	iterator insert(const_iterator, const value_type&);
+	iterator insert(const_iterator, value_type&&);
+	iterator insert(const_iterator, size_type, const value_type&);
+	template<typename Iter>
+	void insert(const_iterator pos, Iter start, Iter end);
+	iterator insert(const_iterator, _std initializer_list<T>);
+	size_type max_size();
+	size_type size();
+	void swap(List);
 
 
 	_node_pointer _head;
