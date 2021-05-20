@@ -21,10 +21,71 @@ using _rebind_allocator = typename _std allocator_traits<from>::template rebind_
 
 template<typename alloc>
 using _std_alloc_traits = _std allocator_traits<alloc>;
-//-----------------------------------------------
 
-// check for member "pointer" of type not -------
-// required to have pointer
+template<typename type, typename = void>
+struct _has_difference_type : _std false_type {};
+
+template<typename type>
+struct _has_difference_type<type, 
+							_std void_t<typename type::difference_type>> 
+	: _std true_type {};
+
+template<typename type>
+constexpr bool _has_difference_type_v = _has_difference_type<type>::value;
+
+template<typename type, typename = void>
+struct _has_value_type : _std false_type {};
+
+template<typename type>
+struct _has_value_type<type, 
+					   _std void_t<typename type::value_type>> 
+	: _std true_type {};
+
+template<typename type>
+constexpr bool _has_value_type_v = _has_value_type<type>::value;
+
+template<typename type, typename = void>
+struct _has_pointer : _std false_type {};
+
+template<typename type>
+struct _has_pointer<type, 
+					_std void_t<typename type::pointer>> 
+	: _std true_type {};
+
+template<typename type>
+constexpr bool _has_pointer_v = _has_pointer<type>::value;
+
+template<typename type, typename = void>
+struct _has_reference : _std false_type {};
+
+template<typename type>
+struct _has_reference<type, 
+					  _std void_t<typename type::reference>> 
+	: _std true_type {};
+
+template<typename type>
+constexpr bool _has_reference_v = _has_reference<type>::value;
+
+template<typename type, typename = void>
+struct _has_iterator_category : _std false_type {};
+
+template<typename type>
+struct _has_iterator_category<type, 
+							 _std void_t<typename type::iterator_category>> 
+	: _std true_type {};
+
+template<typename type>
+constexpr bool _has_iterator_category_v = _has_iterator_category<type>::value;
+
+template<typename Iter, typename = _std enable_if_t<_has_difference_type_v<Iter> &&
+												    _has_value_type_v<Iter> &&
+												    _has_pointer_v<Iter> &&
+												    _has_reference_v<Iter> &&
+												    _has_iterator_category_v<Iter>>>
+struct _is_valid_iterator {};
+
+// check for member "pointer" of type that is
+// not guaranteed to have pointer
 struct _none_pointer {};
 
 template<typename type, typename = void>
@@ -123,7 +184,6 @@ bool operator!= (ConstListIterator<List> l, ConstListIterator<List> r) {
 	return l.ptr != r.ptr;
 }
 
-
 template<typename T, typename Alloc = std::allocator<T>>
 class List {
 
@@ -147,7 +207,7 @@ public:
 
 	using difference_type = typename const_iterator::difference_type; // should be after _node_pointer
 
-private: // functions for constructors
+private:
 
 	template<typename Iter>
 	void _create_head_to_tail(Iter begin, Iter end) {
@@ -208,16 +268,105 @@ public:
 		_List_copy_construct(lis.cbegin(), lis.cend());
 
 	}
+
+private:
+
+	template<typename Iter>
+	void _List_range_construct(Iter begin, Iter end) {
+
+		_create_head_to_tail(begin, end);
+
+	}
+
+public:
+
 	List(_std initializer_list<T> lis) {
 
-		_create_head_to_tail(lis.begin(), lis.end());
+		_List_range_construct(lis.begin(), lis.end());
 
 	}
 	List(_std initializer_list<T> lis, const allocator_type&) {
 
-		_create_head_to_tail(lis.begin(), lis.end());
+		_List_range_construct(lis.begin(), lis.end());
 
 	}
+	template<typename Iter, typename = _is_valid_iterator<Iter>>
+	List(Iter start, Iter end) {
+
+		_List_range_construct(start, end);
+
+	}
+	template<typename Iter, typename Alloc_New, typename = _is_valid_iterator<Iter>>
+	List(Iter start, Iter end, const Alloc_New&) {
+
+		_List_range_construct(start, end);
+
+	}
+
+private:
+
+	void _List_move(List& lis) {
+		_head = lis._head;
+		_tail = lis._tail;
+	}
+
+public:
+
+	List(List&& lis) {
+
+		_List_move(lis);
+
+	}
+	List(List&& lis, const allocator_type&) {
+
+		_List_move(lis);
+
+	}
+
+private:
+
+	void _create_head_to_tail(const value_type& val, size_type size) {
+
+		auto curr = _alloc_traits_node::allocate(_al_node, 1);
+		auto ahead = _alloc_traits_node::allocate(_al_node, 1); // to set next value for curr
+		_alloc_traits_node::construct(_al_node, curr, val, ahead);
+		--size;
+
+		_head = curr;
+
+		for (; size != 0; --size) {
+			curr = ahead;
+			ahead = _alloc_traits_node::allocate(_al_node, 1);
+			_alloc_traits_node::construct(_al_node, curr, val, ahead);
+		}
+
+		_tail = ahead;
+
+	}
+
+public:
+
+	explicit List(size_type size) {
+
+		_create_head_to_tail(value_type{}, size);
+
+	}
+	explicit List(size_type size, const allocator_type&) {
+
+		_create_head_to_tail(value_type{}, size);
+
+	}
+	explicit List(const value_type& val, size_type size) {
+
+		_create_head_to_tail(val, size);
+
+	}
+	explicit List(const value_type& val, size_type size, const allocator_type&) {
+
+		_create_head_to_tail(val, size);
+		
+	}
+
 	~List() {
 
 		_deallocate_head_to_tail();
@@ -262,8 +411,16 @@ public:
 	size_type size();
 	void swap(List);
 
+private:
 
 	_node_pointer _head;
 	_node_pointer _tail;
 	_alloc_node _al_node;
+
 };
+
+template<typename Iter>
+List(Iter, Iter)->List<typename Iter::value_type>;
+
+template<typename Iter, typename Alloc_New>
+List(Iter, Iter, Alloc_New)->List<typename Iter::value_type, Alloc_New>;
