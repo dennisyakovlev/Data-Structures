@@ -9,6 +9,9 @@
 
 #define _std std::
 
+#include <iostream>
+#define print(x) std::cout << x << std::endl;
+
 template<typename T>
 struct _node_store {
 
@@ -139,39 +142,38 @@ public:
 
 private:
 
+	void _init_head_tail() {
+		tail = nullptr;
+		head = nullptr;
+	}
+
 	template<typename Iter>
-	void _create_from_range(Iter begin, Iter end) {
+	void _create_from_range(allocator_type& al_data, _alloc_node& al_node, 
+							Iter begin, Iter end, _node_pointer& into_start, _node_pointer& into_end) {
 		auto curr = _alloc_single(al_node);
 		auto ahead = _alloc_single(al_node);
 
-		auto ptr = _alloc_single(al); // allocate for data type of list
-		_construct_single(al, ptr, *begin); // construct data type of list
+		auto ptr = _alloc_single(al_data); // allocate for data type of list
+		_construct_single(al_data, ptr, *begin); // construct data type of list
 		++begin;
 
 		_construct_single(al_node, curr, ptr, ahead); // construct curr
 
-		head = curr;
+		into_start = curr;
 		for (; begin != end; ++begin) {
 			curr = ahead;
 			ahead = _alloc_single(al_node);
 
 			ptr = _alloc_single(al); // allocate for data type of list
-			_construct_single(al, ptr, *begin); // construct data type of list
+			_construct_single(al_data, ptr, *begin); // construct data type of list
 
 			_construct_single(al_node, curr, ptr, ahead);
 		}
-		tail = ahead;
+		into_end = ahead;
+
 	}
 
-public:
-
-	List() {}
-	List(allocator_type& a) {}
-	List(_std initializer_list<T> lis) : head{ nullptr }, tail{ nullptr } {
-		_create_from_range(lis.begin(), lis.end());
-	}
-	~List() {
-		
+	void _deallocate_all() {
 		_node_pointer next = nullptr;
 		while (head != tail) {
 			next = head->next_v;
@@ -186,7 +188,22 @@ public:
 		}
 		_destroy_single(al_node, tail);
 		_deallocate_single(al_node, tail);
-		
+	}
+
+public:
+
+	List() {}
+	List(allocator_type& a) {}
+	List(_std initializer_list<T> lis) {
+		_init_head_tail();
+		_create_from_range(al, al_node, lis.begin(), lis.end(), head, tail);
+	}
+	List(_std initializer_list<T> lis, allocator_type& alloc) {
+		_init_head_tail();
+		_create_from_range(alloc, al_node, lis.begin(), lis.end(), head, tail);
+	}
+	~List() {
+		_deallocate_all();
 	}
 
 	template<typename alloc_t>
