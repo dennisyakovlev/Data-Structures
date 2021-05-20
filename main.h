@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <iterator>
@@ -245,6 +246,7 @@ private:
 public:
 
 	List() {}
+	
 	List(const allocator_type&) {}
 
 private:
@@ -263,6 +265,7 @@ public:
 		_List_copy_construct(lis.cbegin(), lis.cend());
 
 	}
+	
 	List(const List& lis, const allocator_type&) {
 
 		_List_copy_construct(lis.cbegin(), lis.cend());
@@ -285,17 +288,20 @@ public:
 		_List_range_construct(lis.begin(), lis.end());
 
 	}
+	
 	List(_std initializer_list<T> lis, const allocator_type&) {
 
 		_List_range_construct(lis.begin(), lis.end());
 
 	}
+	
 	template<typename Iter, typename = _is_valid_iterator<Iter>>
 	List(Iter start, Iter end) {
 
 		_List_range_construct(start, end);
 
 	}
+	
 	template<typename Iter, typename Alloc_New, typename = _is_valid_iterator<Iter>>
 	List(Iter start, Iter end, const Alloc_New&) {
 
@@ -317,6 +323,7 @@ public:
 		_List_move(lis);
 
 	}
+	
 	List(List&& lis, const allocator_type&) {
 
 		_List_move(lis);
@@ -351,16 +358,19 @@ public:
 		_create_head_to_tail(value_type{}, size);
 
 	}
+	
 	explicit List(size_type size, const allocator_type&) {
 
 		_create_head_to_tail(value_type{}, size);
 
 	}
+	
 	explicit List(const value_type& val, size_type size) {
 
 		_create_head_to_tail(val, size);
 
 	}
+	
 	explicit List(const value_type& val, size_type size, const allocator_type&) {
 
 		_create_head_to_tail(val, size);
@@ -373,28 +383,58 @@ public:
 
 	}
 
-	void assign(iterator, iterator);
-	void assign(_std initializer_list<T>);
-	void assign(size_type, const value_type&);
+	template<typename Iter, typename = _is_valid_iterator<Iter>>
+	void assign(Iter begin, Iter end) {
+
+		_deallocate_head_to_tail();
+		_List_range_construct(begin, end);
+
+	}
+
+	void assign(_std initializer_list<T> lis) {
+
+		_deallocate_head_to_tail();
+		_List_range_construct(lis.begin(), lis.end());
+
+	}
+
+	void assign(const value_type& val, size_type size) {
+
+		_deallocate_head_to_tail();
+		_create_head_to_tail(val, size);
+
+	}
+	
 	iterator begin() {
 		return iterator(_head);
 	}
+	
 	const_iterator begin() const {
 		return const_iterator{ _head };
 	}
+	
 	const_iterator cbegin() const {
 		return const_iterator{ _head };
 	}
+	
 	iterator end() {
 		return iterator(_tail);
 	}
+	
 	const_iterator end() const {
 		return const_iterator(_tail);
 	}
+	
 	const_iterator cend() const {
 		return const_iterator(_tail);
 	}
-	void clear();
+	
+	void clear() {
+
+		_deallocate_head_to_tail();
+
+	}
+
 	template<typename... Args>
 	iterator emplace(const_iterator, Args&&...);
 	bool empty();
@@ -408,8 +448,29 @@ public:
 	void insert(const_iterator pos, Iter start, Iter end);
 	iterator insert(const_iterator, _std initializer_list<T>);
 	size_type max_size();
-	size_type size();
-	void swap(List);
+
+	size_type size() const {
+		
+		size_type sz = 0;
+		auto temp = this->cbegin();
+		for (; temp != this->cend(); ++temp) {
+			++sz;
+		}
+
+		return sz;
+
+	}
+	
+	template<typename Alloc_New>
+	void swap(List<value_type, Alloc_New>& other) {
+
+		_std swap(_head, other._head);
+		_std swap(_tail, other._tail);
+
+	}
+
+	template<typename, typename>
+	friend class List;
 
 private:
 
