@@ -1,4 +1,6 @@
 #pragma once
+//#include <assert.h>
+#include <assert.h>
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -289,13 +291,25 @@ public:
 
 	List(const List& lis) {
 
-		_List_copy_construct(lis.cbegin(), lis.cend());
+		if ((this != _std addressof(lis)) && !lis.empty()) {
+			_List_copy_construct(lis.cbegin(), lis.cend());
+		}
+		else {
+			_head = nullptr;
+			_tail = nullptr;
+		}
 
 	}
 	
 	List(const List& lis, const allocator_type&) {
 
-		_List_copy_construct(lis.cbegin(), lis.cend());
+		if ((this != _std addressof(lis)) && !lis.empty()) {
+			_List_copy_construct(lis.cbegin(), lis.cend());
+		}
+		else {
+			_head = nullptr;
+			_tail = nullptr;
+		}
 
 	}
 
@@ -506,6 +520,7 @@ public:
 		return _deallocate_range(iter.ptr, iter.ptr->next_v->next_v);
 
 	}
+	
 	iterator erease(const_iterator start, const_iterator end) { // ereases range (start, end)
 
 		return _deallocate_range(start.ptr, end.ptr);
@@ -519,6 +534,65 @@ public:
 	}
 
 private:
+
+	template<typename Iter>
+	iterator _create_into_range_safe(const_iterator into, Iter begin, Iter end) {
+
+		assert(!(this->empty() && !(begin != end)) && "cant insert into end iterator");
+		
+		iterator iter;
+		if (begin != end) {
+			if (this->empty()) {
+				_create_head_to_tail(begin, end);
+				iter = iterator{ _head };
+			}
+			else {
+				iter = _create_into_range(into, begin, end);
+			}
+
+		}
+
+		return iter;
+		
+	}
+
+	template<typename Iter>
+	iterator _create_into_range(const_iterator into, Iter begin, Iter end) {
+
+		auto curr = _alloc_traits_node::allocate(_al_node, 1);
+		auto ahead = _alloc_traits_node::allocate(_al_node, 1); // to set next value for curr
+		_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
+		++begin;
+
+		auto original_start = curr;
+
+		for (; begin != end; ++begin) {
+			curr = ahead;
+			ahead = _alloc_traits_node::allocate(_al_node, 1);
+			_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
+		}
+
+		auto temp = into.ptr->next_v;
+		into.ptr->next_v = original_start;
+		curr->next_v = temp;
+
+		return iterator{original_start};
+	}
+
+	iterator _create_into_range_val_safe(const_iterator into, const value_type& val, size_type size) {
+
+		iterator iter;
+		if (this->empty()) {
+			_create_head_to_tail_val(val, size);
+			iter = iterator{ _head };
+		}
+		else {
+			iter = _create_into_range_val(into, val, size);
+		}
+		
+		return iter;
+
+	}
 
 	iterator _create_into_range_val(const_iterator into, const value_type& val, size_type size) {
 
@@ -546,54 +620,39 @@ public:
 
 	iterator insert(const_iterator into, const value_type& val) { // inserts after into
 
+#ifdef INSERT_CHECK
+		return _create_into_range_val_safe(into, val, 1);
+#else
 		return _create_into_range_val(into, val, 1);
-
+#endif 
 	}
 
 	iterator insert(const_iterator into, const value_type& val, size_type size) { // inserts after into
 
+#ifdef INSERT_CHECK
+		return _create_into_range_val_safe(into, val, size);
+#else
 		return _create_into_range_val(into, val, size);
-
+#endif 
 	}
-
-private:
-
-	template<typename Iter>
-	iterator _create_into_range(const_iterator into, Iter begin, Iter end) {
-
-		auto curr = _alloc_traits_node::allocate(_al_node, 1);
-		auto ahead = _alloc_traits_node::allocate(_al_node, 1); // to set next value for curr
-		_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
-		++begin;
-
-		auto original_start = curr;
-
-		for (; begin != end; ++begin) {
-			curr = ahead;
-			ahead = _alloc_traits_node::allocate(_al_node, 1);
-			_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
-		}
-
-		auto temp = into.ptr->next_v;
-		into.ptr->next_v = original_start;
-		curr->next_v = temp;
-
-		return iterator{original_start};
-	}
-
-public:
 
 	template<typename Iter, typename = _is_valid_iterator<Iter>>
 	iterator insert(const_iterator into, Iter start, Iter end) { // inserts after into
 
+#ifdef INSERT_CHECK
+		return _create_into_range_safe(into, start, end);
+#else
 		return _create_into_range(into, start, end);
-
+#endif 
 	}
 	
 	iterator insert(const_iterator into, _std initializer_list<T> lis) { // inserts after into
 
+#ifdef INSERT_CHECK
+		return _create_into_range_safe(into, lis.begin(), lis.end());
+#else
 		return _create_into_range(into, lis.begin(), lis.end());
-
+#endif 
 	}
 
 	size_type size() const {
