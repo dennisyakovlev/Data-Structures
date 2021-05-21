@@ -108,11 +108,12 @@ struct _node_store {
 	using pointer = _rebind_pointer<void_pointer, _node_store>;
 
 	_node_store(value_type val) : data_v{ val }, next_v{ nullptr } {}
+
 	_node_store(value_type val, pointer ptr) : data_v{ val }, next_v{ ptr } {}
-	~_node_store() = default;
 	
 	value_type data_v;
 	pointer next_v;
+
 };
 
 template<typename List>
@@ -134,18 +135,31 @@ struct ConstListIterator {
 	ConstListIterator(_next node_adr) : ptr{ node_adr } {}
 
 	reference operator* () const {
+
 		return ptr->data_v;
+
 	}
+
 	ConstListIterator& operator++ () {
+
 		ptr = ptr->next_v;
 		return *this;
+
 	}
+
 	ConstListIterator operator++ (int) {
+
 		ConstListIterator temp = *this;
 		++(*this);
 		return temp;
+
 	}
-	//pointer operator-> ();
+
+	pointer operator-> () {
+
+		return _std addressof(ptr->data_v);
+
+	}
 
 	_next ptr;
 	
@@ -164,23 +178,38 @@ struct ListIterator : ConstListIterator<List> {
 	using base::base;
 
 	reference operator* () {
+
 		return const_cast<reference>(base::operator*());
+
 	}
+
 	ListIterator& operator++ () {
+
 		return static_cast<ListIterator&>(base::operator++());
+
 	}
+
 	ListIterator operator++ (int) {
+
 		ListIterator temp = *this;
 		base::operator++ ();
 		return temp;
+
 	}
-	//pointer operator-> ();
+
+	pointer operator-> () {
+
+		return base::operator->();
+
+	}
 
 };
 
 template<typename List>
 bool operator!= (ConstListIterator<List> l, ConstListIterator<List> r) {
+
 	return l.ptr != r.ptr;
+
 }
 
 template<typename T, typename Alloc = std::allocator<T>>
@@ -698,7 +727,6 @@ bool operator< (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
 	);
 
 }
-
 
 template<typename Type, typename Alloc1, typename Alloc2>
 bool operator> (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
