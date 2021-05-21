@@ -1,0 +1,31 @@
+Iterface for node class
+
+Notes:
+    - should store element as value
+    - notice tempalte parameter is a List
+      and not a value type
+
+template<typename List>
+struct Node {
+
+    using value_type = List::value_type;
+    using pointer = List::pointer;
+    using next = Node*;
+
+    explicit Node(const value_type&);
+    explicit Node(value_type&&);
+    explicit Node(const Node&);
+    explicit Node(Node&&);
+    ~Node() = default;
+
+    Node& operator= (const Node&);
+    Node& operator= (Node&&);
+
+    bool empty();
+
+};
+
+template<typename List>
+bool operator== (const Node<List>&, const Node<List>&);
+template<typename List>
+bool operator!= (const Node<List>&, const Node<List>&);

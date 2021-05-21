@@ -1,0 +1,66 @@
+Interface for List class
+
+Want to meet requirments of 
+    - allocator aware container 26.2.1
+    - container 26.2.1
+    - sequence container 26.2.3
+
+template<typename T, typename Alloc = std::allocator<T>>
+class List {
+
+public:
+
+    using value_type = T;
+    using reference = T&;
+    using const_reference = const T&;
+    using iterator = ITER_NAME;
+    using const_iterator = ITER_NAME;
+    using difference_type = typename ITER_NAME::difference_type;
+    using size_type = std::size_t;
+    using allocator_type = Alloc;
+
+    // Constructors
+    List(const allocator_type& = allocator_type{});
+    List(const List&, const allocator_type& = allocator_type{});
+    List(List&&, const allocator_type& = allocator_type{});
+    List(size_type, const value_type&, const allocator_type& = allocator_type{});
+    template<typename Iter>
+    List(Iter, Iter, const allocator_type& = allocator_type{});
+    List(initializer_list<T>, const allocator_type& = allocator_type{});
+    ~List(const allocator_type& = allocator_type{});
+
+    // Operators
+    List& operator= (initializer_list<T>)
+    List& operator= (const List&);
+    List& operator= (List&&);
+
+    // Functions
+    void assign(iterator, iterator);
+    void assign(initializer_list<T>);
+    void assign(size_type, const value_type&);
+    iterator begin();
+    const_iterator cbegin();
+    iterator end();
+    const_iterator cend();
+    void clear();
+    template<typename... Args>
+    iterator emplace(const_iterator, args&&...);
+    bool empty();
+    iterator erease(const_iterator);
+    iterator erease(const_iterator, const_iterator);
+    allocator_type get_allocator();
+    iterator insert(const_iterator, const value_type&);
+    iterator insert(const_iterator, value_type&&);
+    iterator insert(const_iterator, size_type, const value_type&);
+    iterator insert(const_iterator, iterator, iterator);
+    iterator insert(const_iterator, initializer_list<T>);
+    size_type max_size():
+    size_type size();
+    void swap(List);
+
+};
+
+template<typename T, typename Alloc>
+bool operator== (const List<T, Alloc>&, const List<T, Alloc>&);
+template<typename T>
+bool operator!= (const List<T, Alloc>&, const List<T, Alloc>&);

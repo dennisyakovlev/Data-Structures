@@ -13,8 +13,6 @@ struct Node {
 	using data_t = T;                      
 
 	Node() : v_data{}, v_next { nullptr } {}
-	Node(const data_t data, Node* next) : v_data{ std::move(data) }, 
-												v_next{ next } {}
 	Node(const data_t data, const Node* const next) : v_data{ std::move(data) }, 
 												v_next{ const_cast<Node*>(next) } {}							
 
