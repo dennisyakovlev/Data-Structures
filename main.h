@@ -332,7 +332,7 @@ public:
 
 private:
 
-	void _create_head_to_tail(const value_type& val, size_type size) {
+	void _create_head_to_tail_val(const value_type& val, size_type size) {
 
 		auto curr = _alloc_traits_node::allocate(_al_node, 1);
 		auto ahead = _alloc_traits_node::allocate(_al_node, 1); // to set next value for curr
@@ -355,25 +355,25 @@ public:
 
 	explicit List(size_type size) {
 
-		_create_head_to_tail(value_type{}, size);
+		_create_head_to_tail_val(value_type{}, size);
 
 	}
 	
 	explicit List(size_type size, const allocator_type&) {
 
-		_create_head_to_tail(value_type{}, size);
+		_create_head_to_tail_val(value_type{}, size);
 
 	}
 	
 	explicit List(const value_type& val, size_type size) {
 
-		_create_head_to_tail(val, size);
+		_create_head_to_tail_val(val, size);
 
 	}
 	
 	explicit List(const value_type& val, size_type size, const allocator_type&) {
 
-		_create_head_to_tail(val, size);
+		_create_head_to_tail_val(val, size);
 		
 	}
 
@@ -437,17 +437,128 @@ public:
 
 	template<typename... Args>
 	iterator emplace(const_iterator, Args&&...);
-	bool empty();
-	iterator erease(const_iterator);
-	iterator erease(const_iterator, const_iterator);
-	allocator_type get_allocator();
-	iterator insert(const_iterator, const value_type&);
-	iterator insert(const_iterator, value_type&&);
-	iterator insert(const_iterator, size_type, const value_type&);
+	
+	bool empty() const {
+
+		return _head == _tail;
+
+	}
+	
+private:
+
+	iterator _deallocate_range(_node_pointer begin, _node_pointer end) {
+
+		auto original_start = begin;
+		begin = begin->next_v;
+
+		auto temp = begin;
+		for (; begin != end; begin = temp) {
+			temp = begin->next_v;
+			_alloc_traits_node::destroy(_al_node, begin);
+			_alloc_traits_node::deallocate(_al_node, begin, 1);
+		}
+
+		original_start->next_v = end;
+
+		return iterator{ end };
+	}
+
+public:
+
+	iterator erease(const_iterator iter) { // ereases element after iter
+
+		return _deallocate_range(iter.ptr, iter.ptr->next_v->next_v);
+
+	}
+	iterator erease(const_iterator start, const_iterator end) { // ereases range (start, end)
+
+		return _deallocate_range(start.ptr, end.ptr);
+
+	}
+
+	allocator_type get_allocator() {
+
+		return _al_node;
+
+	}
+
+private:
+
+	iterator _create_into_range_val(const_iterator into, const value_type& val, size_type size) {
+
+		auto curr = _alloc_traits_node::allocate(_al_node, 1);
+		auto ahead = _alloc_traits_node::allocate(_al_node, 1); // to set next value for curr
+		_alloc_traits_node::construct(_al_node, curr, val, ahead);
+		--size;
+
+		auto original_start = curr;
+
+		for (; size != 0; --size) {
+			curr = ahead;
+			ahead = _alloc_traits_node::allocate(_al_node, 1);
+			_alloc_traits_node::construct(_al_node, curr, val, ahead);
+		}
+
+		auto temp = into.ptr->next_v;
+		into.ptr->next_v = original_start;
+		curr->next_v = temp;
+
+		return iterator{ original_start };
+	}
+
+public:
+
+	iterator insert(const_iterator into, const value_type& val) { // inserts after into
+
+		return _create_into_range_val(into, val, 1);
+
+	}
+
+	iterator insert(const_iterator into, const value_type& val, size_type size) { // inserts after into
+
+		return _create_into_range_val(into, val, size);
+
+	}
+
+private:
+
 	template<typename Iter>
-	void insert(const_iterator pos, Iter start, Iter end);
-	iterator insert(const_iterator, _std initializer_list<T>);
-	size_type max_size();
+	iterator _create_into_range(const_iterator into, Iter begin, Iter end) {
+
+		auto curr = _alloc_traits_node::allocate(_al_node, 1);
+		auto ahead = _alloc_traits_node::allocate(_al_node, 1); // to set next value for curr
+		_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
+		++begin;
+
+		auto original_start = curr;
+
+		for (; begin != end; ++begin) {
+			curr = ahead;
+			ahead = _alloc_traits_node::allocate(_al_node, 1);
+			_alloc_traits_node::construct(_al_node, curr, *begin, ahead);
+		}
+
+		auto temp = into.ptr->next_v;
+		into.ptr->next_v = original_start;
+		curr->next_v = temp;
+
+		return iterator{original_start};
+	}
+
+public:
+
+	template<typename Iter, typename = _is_valid_iterator<Iter>>
+	iterator insert(const_iterator into, Iter start, Iter end) { // inserts after into
+
+		return _create_into_range(into, start, end);
+
+	}
+	
+	iterator insert(const_iterator into, _std initializer_list<T> lis) { // inserts after into
+
+		return _create_into_range(into, lis.begin(), lis.end());
+
+	}
 
 	size_type size() const {
 		
