@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <iterator>
 #include <initializer_list>
 #include <memory>
@@ -9,9 +10,6 @@
 #include <utility>
 
 #define _std std::
-
-#include <iostream>
-#define print(x) std::cout << x << std::endl;
 
 // traits ---------------------------------------
 template<typename from, typename to>
@@ -436,7 +434,16 @@ public:
 	}
 
 	template<typename... Args>
-	iterator emplace(const_iterator, Args&&...);
+	iterator emplace(const_iterator into, Args&&... args) {
+
+		auto node = _alloc_traits_node::allocate(_al_node, 1);
+		_alloc_traits_node::construct(_al_node, node, value_type(_std forward<Args>(args)...), into.ptr->next_v);
+
+		into.ptr->next_v = node;
+
+		return iterator{ node };
+
+	}
 	
 	bool empty() const {
 
@@ -596,3 +603,112 @@ List(Iter, Iter)->List<typename Iter::value_type>;
 
 template<typename Iter, typename Alloc_New>
 List(Iter, Iter, Alloc_New)->List<typename Iter::value_type, Alloc_New>;
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool _compare_equals(const List<Type, Alloc1>& l, const List<Type, Alloc2>& r, _std function<bool(Type, Type)> func) {
+
+	auto left_iter = l.begin();
+	auto right_iter = r.begin();
+
+	for (; (left_iter != l.end()) && (right_iter != r.end()); ++left_iter, ++right_iter) {
+		if (!func(*left_iter, *right_iter)) {
+			return false;
+		}
+	}
+
+	if ((left_iter != l.end()) || (right_iter != r.end())) {
+		return false;
+	}
+
+	return true;
+
+}
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool operator== (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
+
+	return _compare_equals(l, r,
+		_std function(
+			[](Type left, Type right) -> bool { 
+				return left == right; 
+			}
+		)
+	);
+
+}
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool operator!= (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
+
+	return !(l == r);
+
+}
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool _compare_inequality(const List<Type, Alloc1>& l, const List<Type, Alloc2>& r, _std function<bool(Type, Type)> func) {
+
+	auto left_iter = l.begin();
+	auto right_iter = r.begin();
+
+	for (; (left_iter != l.end()) && (right_iter != r.end()); ++left_iter, ++right_iter) {
+		if (!func(*left_iter, *right_iter)) {
+			return false;
+		}
+	}
+
+	return true;
+
+}
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool operator<= (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
+
+	return _compare_inequality(l, r,
+		_std function(
+			[](Type left, Type right) -> bool { 
+				return left <= right; 
+			}
+		)
+	);
+
+}
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool operator>= (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
+
+	return _compare_inequality(l, r,
+		_std function(
+			[](Type left, Type right) -> bool { 
+				return left >= right;
+			}
+		)
+	);
+
+}
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool operator< (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
+
+	return _compare_inequality(l, r,
+		_std function(
+			[](Type left, Type right) -> bool {
+				return left < right;
+			}
+		)
+	);
+
+}
+
+
+template<typename Type, typename Alloc1, typename Alloc2>
+bool operator> (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
+
+	return _compare_inequality(l, r,
+		_std function(
+			[](Type left, Type right) -> bool {
+				return left > right;
+			}
+		)
+	);	
+
+}
