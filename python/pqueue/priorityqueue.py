@@ -1,5 +1,5 @@
 from typing import Any
-from python.structures import heap
+from python.pqueue import heap
 
 # Notes:
 # - build_max_heap and insert producde different

@@ -1,0 +1,18 @@
+Need some type of special iterator with a "skip" pattern
+    - skip pattern of 1 is just a normal iter going
+      left to right (breadth first)
+    - skip pattern of 2 goes to every second element
+      and goes through the *entire* heap, as in when
+      the end is reached, goes back a visits the
+      elements it didnt visit first time around
+
+Implement the pqueue and heap in one class, do not
+have them seperate
+
+PriorityQueue:
+    - have constructor with parameter of maximum height which
+      pre allocates room
+    - allocate an extra level of room, unlike say vector which
+      allocates 1.5x more room
+    - do *not* allow container choice
+    - make allocator aware
