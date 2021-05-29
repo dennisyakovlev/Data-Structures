@@ -10,97 +10,12 @@
 #include <type_traits>
 #include <utility>
 
-#define _std std::
+#include <dsa_macros.h>
+#include <dsa_iterator_traits.h>
+#include <dsa_memory_traits.h>
+#include <dsa_type_traits.h>
 
-// traits ---------------------------------------
-template<typename from, typename to>
-using _rebind_pointer = typename _std pointer_traits<from>::template rebind<to>;
-
-template<typename from, typename to>
-using _rebind_allocator = typename _std allocator_traits<from>::template rebind_alloc<to>;
-
-template<typename alloc>
-using _std_alloc_traits = _std allocator_traits<alloc>;
-
-template<typename type, typename = void>
-struct _has_difference_type : _std false_type {};
-
-template<typename type>
-struct _has_difference_type<type, 
-							_std void_t<typename type::difference_type>> 
-	: _std true_type {};
-
-template<typename type>
-constexpr bool _has_difference_type_v = _has_difference_type<type>::value;
-
-template<typename type, typename = void>
-struct _has_value_type : _std false_type {};
-
-template<typename type>
-struct _has_value_type<type, 
-					   _std void_t<typename type::value_type>> 
-	: _std true_type {};
-
-template<typename type>
-constexpr bool _has_value_type_v = _has_value_type<type>::value;
-
-template<typename type, typename = void>
-struct _has_pointer : _std false_type {};
-
-template<typename type>
-struct _has_pointer<type, 
-					_std void_t<typename type::pointer>> 
-	: _std true_type {};
-
-template<typename type>
-constexpr bool _has_pointer_v = _has_pointer<type>::value;
-
-template<typename type, typename = void>
-struct _has_reference : _std false_type {};
-
-template<typename type>
-struct _has_reference<type, 
-					  _std void_t<typename type::reference>> 
-	: _std true_type {};
-
-template<typename type>
-constexpr bool _has_reference_v = _has_reference<type>::value;
-
-template<typename type, typename = void>
-struct _has_iterator_category : _std false_type {};
-
-template<typename type>
-struct _has_iterator_category<type, 
-							 _std void_t<typename type::iterator_category>> 
-	: _std true_type {};
-
-template<typename type>
-constexpr bool _has_iterator_category_v = _has_iterator_category<type>::value;
-
-template<typename Iter, typename = _std enable_if_t<_has_difference_type_v<Iter> &&
-												    _has_value_type_v<Iter> &&
-												    _has_pointer_v<Iter> &&
-												    _has_reference_v<Iter> &&
-												    _has_iterator_category_v<Iter>>>
-struct _is_valid_iterator {};
-
-// check for member "pointer" of type that is
-// not guaranteed to have pointer
-struct _none_pointer {};
-
-template<typename type, typename = void>
-struct _pointer_struct {
-	static_assert(_std is_same_v<type, _none_pointer>, "<type> is missing \"pointer\" member");
-};
-
-template<typename type>
-struct _pointer_struct<type, _std void_t<typename type::pointer>> {
-	using _pointer_type = typename type::pointer;
-};
-
-template<typename type>
-using _pointer = typename _pointer_struct<type>::_pointer_type;
-//-----------------------------------------------
+_begin_dsa
 
 template<typename type, typename void_pointer>
 struct _node_store {
@@ -798,3 +713,5 @@ bool operator> (const List<Type, Alloc1>& l, const List<Type, Alloc2>& r) {
 	);	
 
 }
+
+_end_dsa
