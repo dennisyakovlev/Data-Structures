@@ -184,9 +184,9 @@ private:
 public:
 
 	PriorityQueue() : al() {}
+	
 	PriorityQueue(const allocator_type& alloc) : al(alloc) {}
-	//explicit PriorityQueue(SizeInit);
-	//explicit PriorityQueue(SizeInit, const allocator_type&);
+
 	
 	PriorityQueue(const PriorityQueue& r) {
 		_create_range(r.cbegin(), r.cend());
