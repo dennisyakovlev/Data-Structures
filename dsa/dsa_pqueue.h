@@ -63,6 +63,11 @@ struct ConstPriorityQueueBreadthIterator : _PriorityQueue_Iter_Base<PriorityQueu
 		return *this;
 	}
 
+	_iter_ref operator-- () {
+		--(reinterpret_cast<base*>(this)->elem);
+		return *this;
+	}
+
 	reference operator* () {
 		return **(reinterpret_cast<base*>(this));
 	}
@@ -136,7 +141,8 @@ class PriorityQueue {
 
 public:
 
-	static_assert(_std is_same_v<T, _std_alloc_traits<Alloc>::value_type>, "allocator type must be same as value type");
+	static_assert(_std is_same_v<T, _std_alloc_traits<Alloc>::value_type>, 
+		"allocator value type must be same as priorityqueue value type");
 
 	using allocator_type = Alloc;
 	using value_type = T;
@@ -317,13 +323,24 @@ public:
 		auto l = _left(ptr);
 		auto r = _right(ptr);
 		_pointer_type largest = *l > *r ? l : r;
-		for (; *largest > *ptr && (ptr - first_v <= (size() + 1) / 2) && largest != ptr;) {
+		// float down while current node is smaller than a child and not in final row
+		for (; *largest > *ptr && (ptr - first_v <= (size() + 1) / 2);) {
 			_std swap(*ptr, *largest);
 			ptr = largest;
 			l = _left(ptr);
 			r = _right(ptr);
 			largest = *l > *r ? l : r;
 		}		
+	}
+
+	void _build_heap() {
+		size_type sz = size_type((last_v - first_v) / 2);
+		iterator iter = iterator(first_v + sz);
+		iterator beg = begin();
+		for (; iter != beg; --iter) {
+			_float_down(iter);
+		}
+		_float_down(iter);
 	}
 
 	_pointer_type first_v;
