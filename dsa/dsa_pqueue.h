@@ -10,6 +10,9 @@
 #include <dsa_memory_traits.h>
 #include <dsa_iterator_traits.h>
 
+#define _left(ptr) first_v + ((2 * (ptr - first_v)) + 1);
+#define _right(ptr) first_v + ((2 * (ptr - first_v)) + 2);
+#define _valid_pointer(ptr) ptr <= last_v && ptr >= first_v
 #define _alloc_pqueue(alloc, size) _alloc_traits::allocate(alloc, size)
 #define _dealloc_pqueue(alloc, pointer, size) _alloc_traits::deconstruct(alloc, pointer, size)
 
@@ -56,7 +59,7 @@ struct ConstPriorityQueueBreadthIterator : _PriorityQueue_Iter_Base<PriorityQueu
 	using base::base;
 
 	_iter_ref operator++ () {
-		++((*reinterpret_cast<base*>(this)).elem);
+		++(reinterpret_cast<base*>(this)->elem);
 		return *this;
 	}
 
@@ -78,6 +81,13 @@ struct PriorityQueueBreadthIterator : ConstPriorityQueueBreadthIterator<Priority
 	using iterator_type = typename base::iterator_type;
 
 	using base::base;
+
+	using _iter = PriorityQueueBreadthIterator;
+	using _iter_ref = _iter&;
+
+	_iter_ref operator++ () {
+		return static_cast<_iter_ref>(base::operator++());
+	}
 
 };
 
@@ -205,7 +215,6 @@ private:
 		first_v = lis.first_v;
 		last_v = lis.last_v;
 		final_v = lis.final_v;
-		size_v = lis.size_v;
 	}
 
 public:
@@ -295,13 +304,32 @@ public:
 	template<typename Val> // enable if
 	iterator_depth insert(iterator_depth, _std initializer_list<Val>);
 
+	size_type size() {
+		 
+		return last_v - first_v;
+
+	}
+
 //private:
+
+	void _float_down(iterator iter) {
+		_pointer_type ptr = static_cast<_PriorityQueue_Iter_Base<PriorityQueue>>(iter).elem;
+		auto l = _left(ptr);
+		auto r = _right(ptr);
+		_pointer_type largest = *l > *r ? l : r;
+		for (; *largest > *ptr && (ptr - first_v <= (size() + 1) / 2) && largest != ptr;) {
+			_std swap(*ptr, *largest);
+			ptr = largest;
+			l = _left(ptr);
+			r = _right(ptr);
+			largest = *l > *r ? l : r;
+		}		
+	}
 
 	_pointer_type first_v;
 	_pointer_type last_v;
 	_pointer_type final_v;
 	allocator_type al;
-	size_type size_v;
 
 };
 
