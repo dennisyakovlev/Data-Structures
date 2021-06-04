@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <initializer_list>
@@ -15,8 +16,6 @@
 #define _valid_pointer(ptr) ptr <= last_v && ptr >= first_v
 #define _alloc_pqueue(alloc, size) _alloc_traits::allocate(alloc, size)
 #define _dealloc_pqueue(alloc, pointer, size) _alloc_traits::deconstruct(alloc, pointer, size)
-
-#include <iostream>
 
 _begin_dsa
 
@@ -207,11 +206,15 @@ public:
 
 	
 	PriorityQueue(const PriorityQueue& r) {
+		
 		_create_range(r.cbegin(), r.cend());
+	
 	}
 	
 	PriorityQueue(const PriorityQueue& r, const allocator_type& alloc) : al(alloc) {
+		
 		_create_range(r.cbegin(), r.cend());
+	
 	}
 
 private:
@@ -226,37 +229,57 @@ private:
 public:
 
 	PriorityQueue(PriorityQueue&& r) {
+		
 		_move(r);
+	
 	}
 	
 	PriorityQueue(PriorityQueue&& r, const allocator_type& alloc): al(alloc) {
+		
 		_move(r);
+	
 	}
 	
 	PriorityQueue(size_type sz, const value_type& val) {
+		
 		_create_size(sz, val);
+	
 	}
 
 	PriorityQueue(size_type sz, const value_type& val, const allocator_type& alloc) : al(alloc) {
+
 		_create_size(sz, val);
+
 	}
 	
 	template<typename Iter, typename = _is_valid_iterator<Iter>>
 	PriorityQueue(Iter begin, Iter end) {
+
 		_create_range(begin, end);
+		_build_heap();
+
 	}
 	
 	template<typename Iter, typename = _is_valid_iterator<Iter>>
 	PriorityQueue(Iter begin, Iter end, const allocator_type& alloc) : al(alloc) {
+		
 		_create_range(begin, end);
+		_build_heap();
+
 	}
 	
 	PriorityQueue(_std initializer_list<value_type> lis) : al() {
+		
 		_create_range(lis.begin(), lis.end());
+		_build_heap();
+	
 	}
 	
 	PriorityQueue(_std initializer_list<value_type> lis, const allocator_type& alloc) : al(alloc) {
+		
 		_create_range(lis.begin(), lis.end());
+		_build_heap();
+
 	}
 
 	PriorityQueue& operator= (const PriorityQueue&);
@@ -295,6 +318,12 @@ public:
 		return const_iterator_depth(last_v);
 	}
 
+private:
+
+
+
+public:
+
 	iterator insert(iterator, const value_type&);
 	iterator_depth insert(iterator_depth, const value_type&);
 	iterator insert(iterator, const value_type&&);
@@ -310,13 +339,17 @@ public:
 	template<typename Val> // enable if
 	iterator_depth insert(iterator_depth, _std initializer_list<Val>);
 
-	size_type size() {
+	size_type size() const {
 		 
 		return last_v - first_v;
 
 	}
 
-//private:
+	value_type& operator[] (size_type i) {
+		return first_v + i;
+	}
+
+private:
 
 	void _float_down(iterator iter) {
 		_pointer_type ptr = static_cast<_PriorityQueue_Iter_Base<PriorityQueue>>(iter).elem;
@@ -358,6 +391,60 @@ PriorityQueue(Iter, Iter, Alloc_New)->PriorityQueue<typename Iter::value_type, A
 
 template<typename sz_type, typename T_Same, typename Alloc_New>
 PriorityQueue(sz_type, T_Same, Alloc_New)->PriorityQueue<T_Same, Alloc_New>;
+
+
+#include <iostream>
+#include <sstream>
+#include <string>
+
+template<typename T>
+_std string::size_type _max_width(const T& val) {
+	
+	_std stringstream stream;
+	stream << val;
+	_std istringstream iss(stream.str());
+	_std string line = "";
+	_std string::size_type max_len = 0;
+	while (_std getline(iss, line, '\n')) { // for windows only
+		max_len = _std max(max_len, line.size());
+	}
+	return max_len;
+
+}
+
+template<typename T, typename Alloc>
+_std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
+
+	using PQueue = PriorityQueue<T, Alloc>;
+	using size_type = typename PQueue::size_type;
+	using const_iterator = typename PQueue::const_iterator;
+
+	const_iterator curr = pq.cbegin();
+	size_type num_level(_std log2(pq.size() + 1));
+	double num_bottom_pairs = 0;
+
+	for (size_type i = num_level; i != 0; --i) {
+		
+		// get number of spaces
+		num_bottom_pairs =  _std pow(2, i) / 8; // divide by 8 to avoide negative i
+		size_type num_spaces = (3 * num_bottom_pairs) + (num_bottom_pairs - 1);
+
+		// add to accumulator <out>
+		for (size_type j = 0; j != size_type(_std pow(2, num_level - i)); ++j) {
+			out << _std string(num_spaces, ' ');
+			out << *curr;
+			out << _std string(num_spaces, ' ');
+			out << " ";
+			++curr;
+		}
+
+		out << '\n';
+
+	}
+
+	return out;
+
+}
 
 _end_dsa
 
