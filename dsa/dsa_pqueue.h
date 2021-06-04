@@ -193,9 +193,9 @@ private:
 	void _create_size(size_type sz, const value_type& val) {
 		auto size = _size_from_size(sz);
 		first_v = _alloc_pqueue(al, size);
-		last_v = first_v;
+		last_v = first_v + sz;
 		final_v = first_v + size;
-		_construct_size(sz, last_v, val);
+		_construct_size(sz, first_v, val);
 	}
 
 public:
@@ -421,8 +421,10 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 
 	const_iterator curr = pq.cbegin();
 	size_type num_level(_std log2(pq.size() + 1));
-	double num_bottom_pairs = 0;
+	double num_bottom_pairs = 0; // should be okay since this is at most pq.size() / 4
+								 // and size_type is std::size_t, which is unsigned int
 
+	// for number of level
 	for (size_type i = num_level; i != 0; --i) {
 		
 		// get number of spaces
