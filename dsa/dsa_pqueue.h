@@ -5,6 +5,9 @@
 #include <initializer_list>
 #include <iterator>
 #include <memory>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 #include <dsa_macros.h>
 #include <dsa_memory.h>
@@ -287,35 +290,75 @@ public:
 	PriorityQueue& operator= (const value_type&);
 	
 	iterator begin() {
+		
 		return iterator(first_v);
+	
 	}
 	
+	iterator begin() const {
+		
+		return iterator(first_v);
+	
+	}
+
 	iterator_depth begin(depth_iterator_tag) {
+		
 		return iterator_depth(first_v);
+	
 	}
 	
+	iterator_depth begin(depth_iterator_tag) const {
+
+		return iterator_depth(first_v);
+
+	}
+
 	const_iterator cbegin() const {
+		
 		return const_iterator(first_v);
+	
 	}
 	
 	const_iterator_depth begin(depth_iterator_tag) const {
+		
 		return const_iterator_depth(first_v);
+	
 	}
 
 	iterator end() {
+		
 		return iterator(last_v);
+	
+	}
+
+	iterator end() const {
+		
+		return iterator(last_v);
+	
 	}
 	
 	iterator_depth end(depth_iterator_tag) {
+		
 		return iterator_depth(last_v);
+	
 	}
 	
+	iterator_depth end(depth_iterator_tag) const {
+
+		return iterator_depth(last_v);
+
+	}
+
 	const_iterator cend() const {
+		
 		return const_iterator(last_v);
+	
 	}
 	
 	const_iterator_depth cend(depth_iterator_tag) const {
+		
 		return const_iterator_depth(last_v);
+	
 	}
 
 private:
@@ -343,10 +386,6 @@ public:
 		 
 		return last_v - first_v;
 
-	}
-
-	value_type& operator[] (size_type i) {
-		return first_v + i;
 	}
 
 private:
@@ -392,22 +431,20 @@ PriorityQueue(Iter, Iter, Alloc_New)->PriorityQueue<typename Iter::value_type, A
 template<typename sz_type, typename T_Same, typename Alloc_New>
 PriorityQueue(sz_type, T_Same, Alloc_New)->PriorityQueue<T_Same, Alloc_New>;
 
+// output operator and functions s
+template<typename T, typename Alloc>
+auto _max_len(const PriorityQueue<T, Alloc>& pq) {
 
-#include <iostream>
-#include <sstream>
-#include <string>
+	using str_size = _std string::size_type;
 
-template<typename T>
-_std string::size_type _max_width(const T& val) {
-	
-	_std stringstream stream;
-	stream << val;
-	_std istringstream iss(stream.str());
-	_std string line = "";
-	_std string::size_type max_len = 0;
-	while (_std getline(iss, line, '\n')) { // for windows only
-		max_len = _std max(max_len, line.size());
+	str_size max_len = 0;
+	_std stringstream ss;
+	for (auto& elem : pq) {
+		ss << elem;
+		max_len = _std max<str_size>(max_len, ss.str().size());
+		ss.str(_std string());
 	}
+
 	return max_len;
 
 }
@@ -419,6 +456,7 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 	using size_type = typename PQueue::size_type;
 	using const_iterator = typename PQueue::const_iterator;
 
+	auto max_size = _max_len(pq); // output relative to longest element in pqueue
 	const_iterator curr = pq.cbegin();
 	size_type num_level(_std log2(pq.size() + 1));
 	double num_bottom_pairs = 0; // should be okay since this is at most pq.size() / 4
@@ -429,14 +467,14 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 		
 		// get number of spaces
 		num_bottom_pairs =  _std pow(2, i) / 8; // divide by 8 to avoide negative i
-		size_type num_spaces = (3 * num_bottom_pairs) + (num_bottom_pairs - 1);
+		size_type num_spaces = (3 * num_bottom_pairs * max_size) + (max_size * (num_bottom_pairs - 1));
 
 		// add to accumulator <out>
 		for (size_type j = 0; j != size_type(_std pow(2, num_level - i)); ++j) {
 			out << _std string(num_spaces, ' ');
 			out << *curr;
 			out << _std string(num_spaces, ' ');
-			out << " ";
+			out << _std string(max_size, ' ');
 			++curr;
 		}
 
@@ -449,4 +487,3 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 }
 
 _end_dsa
-
