@@ -9,7 +9,6 @@
 #include <dsa_memory.h>
 #include <dsa_memory_traits.h>
 #include <dsa_iterator_traits.h>
-#include <dsa_utils.h>
 
 #define _alloc_pqueue(alloc, size) _alloc_traits::allocate(alloc, size)
 #define _dealloc_pqueue(alloc, pointer, size) _alloc_traits::deconstruct(alloc, pointer, size)
@@ -28,6 +27,7 @@ struct _PriorityQueue_Iter_Base {
 	using value_type = typename PriorityQueue::value_type;
 	using reference = typename PriorityQueue::reference;
 	using pointer = _pointer<_std_alloc_traits<_alloc_type>>;
+
 
 	_PriorityQueue_Iter_Base(pointer ptr) : elem(ptr) {}
 
@@ -126,6 +126,8 @@ class PriorityQueue {
 
 public:
 
+	static_assert(_std is_same_v<T, _std_alloc_traits<Alloc>::value_type>, "allocator type must be same as value type");
+
 	using allocator_type = Alloc;
 	using value_type = T;
 	using reference = value_type&;
@@ -167,7 +169,7 @@ private:
 	template<typename Iter>
 	void _create_range(Iter begin, Iter end) {
 		auto size = _size_from_size(_std distance(begin, end));
-		first_v = _alloc_pqueue(al, size);
+		first_v = reinterpret_cast<_pointer_type>(_alloc_pqueue(al, size));
 		last_v = first_v;
 		final_v = first_v + size;
 		_construct_range(begin, end);
@@ -220,10 +222,7 @@ public:
 		_create_size(sz, val);
 	}
 
-	// need 3 templates since partial deduction guide is not allowed
-	template<typename sz_type, typename T2, typename Alloc_New,
-		     typename = _std enable_if_t<_std is_constructible_v<size_type, sz_type>>>
-	PriorityQueue(sz_type sz, const T2& val, const Alloc_New& alloc) : al(alloc) {
+	PriorityQueue(size_type sz, const value_type& val, const allocator_type& alloc) : al(alloc) {
 		_create_size(sz, val);
 	}
 	
@@ -232,8 +231,8 @@ public:
 		_create_range(begin, end);
 	}
 	
-	template<typename Iter, typename Alloc_New, typename = _is_valid_iterator<Iter>>
-	PriorityQueue(Iter begin, Iter end, Alloc_New alloc) : al(alloc) {
+	template<typename Iter, typename = _is_valid_iterator<Iter>>
+	PriorityQueue(Iter begin, Iter end, const allocator_type& alloc) : al(alloc) {
 		_create_range(begin, end);
 	}
 	
