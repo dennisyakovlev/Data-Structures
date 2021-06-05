@@ -402,29 +402,35 @@ public:
 
 private:
 
-	void _float_down(iterator iter) {
+	void _float_down(iterator iter, bool p = false) {
+
 		_pointer_type ptr = static_cast<_PriorityQueue_Iter_Base<PriorityQueue>>(iter).elem;
 		auto l = _left(ptr);
 		auto r = _right(ptr);
 		_pointer_type largest = *l > *r ? l : r;
+		const size_type begin_last = size_type(_std pow(2, _std floor(_std log2(size()))) - 1);
+
 		// float down while current node is smaller than a child and not in final row
-		for (; *largest > *ptr && (ptr - first_v < (size() + 1) / 2);) {
+		for (; *largest > *ptr && (ptr - first_v < begin_last);) {
 			_std swap(*ptr, *largest);
 			ptr = largest;
 			l = _left(ptr);
 			r = _right(ptr);
 			largest = *l > *r ? l : r;
 		}		
+
 	}
 
 	void _build_heap() {
-		size_type sz = size_type((last_v - first_v) / 2) - 1;
+		const size_type sz = size_type(_std floor((last_v - first_v) / 2)) - 1;
 		iterator iter = iterator(first_v + sz);
-		iterator beg = begin();
+		const iterator beg = begin();
+		
 		for (; iter != beg; --iter) {
 			_float_down(iter);
 		}
 		_float_down(iter);
+
 	}
 
 	_pointer_type first_v;
@@ -470,7 +476,7 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 
 	auto max_size = _max_len(pq); // output relative to longest element in pqueue
 	const_iterator curr = pq.cbegin();
-	size_type num_level(_std log2(pq.size() + 1));
+	size_type num_level(_std ceil(_std log2(pq.size() + 1)));
 	double num_bottom_pairs = 0; // should be okay since this is at most pq.size() / 4
 								 // and size_type is std::size_t, which is unsigned int
 
@@ -478,16 +484,21 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 	for (size_type i = num_level; i != 0; --i) {
 		
 		// get number of spaces
-		num_bottom_pairs =  _std pow(2, i) / 8; // divide by 8 to avoide negative i
+		num_bottom_pairs =  _std pow(2, i) / 8; // divide by 8 to avoid negative i
 		size_type num_spaces = (3 * num_bottom_pairs * max_size) + (max_size * (num_bottom_pairs - 1));
 
 		// add to accumulator <out> for every element in <pq>
 		for (size_type j = 0; j != size_type(_std pow(2, num_level - i)); ++j) {
 			out << _std string(num_spaces, ' ');
-			out << *curr;
+			if (curr != pq.end()) {
+				out << *curr;
+				++curr;
+			}
+			else {
+				out << "N";
+			}
 			out << _std string(num_spaces, ' ');
 			out << _std string(max_size, ' ');
-			++curr;
 		}
 
 		out << '\n';
