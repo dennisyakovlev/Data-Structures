@@ -143,7 +143,7 @@ class PriorityQueue {
 
 public:
 
-	static_assert(_std is_same_v<T, _std_alloc_traits<Alloc>::value_type>, 
+	static_assert(_std is_same_v<T, typename _std_alloc_traits<Alloc>::value_type>, 
 		"allocator value type must be same as priorityqueue value type");
 
 	using allocator_type = Alloc;
@@ -418,7 +418,7 @@ private:
 	}
 
 	void _build_heap() {
-		size_type sz = size_type((last_v - first_v) / 2);
+		size_type sz = size_type((last_v - first_v) / 2) - 1;
 		iterator iter = iterator(first_v + sz);
 		iterator beg = begin();
 		for (; iter != beg; --iter) {
