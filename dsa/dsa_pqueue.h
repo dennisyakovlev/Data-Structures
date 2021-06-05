@@ -187,7 +187,7 @@ private:
 	template<typename Iter>
 	void _create_range(Iter begin, Iter end) {
 		auto size = _size_from_size(_std distance(begin, end));
-		first_v = reinterpret_cast<_pointer_type>(_alloc_pqueue(al, size));
+		first_v = _alloc_pqueue(al, size);
 		last_v = first_v;
 		final_v = first_v + size;
 		_construct_range(begin, end);
@@ -319,7 +319,7 @@ public:
 	
 	}
 	
-	const_iterator_depth begin(depth_iterator_tag) const {
+	const_iterator_depth cbegin(depth_iterator_tag) const {
 		
 		return const_iterator_depth(first_v);
 	
@@ -363,11 +363,23 @@ public:
 
 private:
 
+	void _alloc_if_needed(size_type to_add) {
 
+		if (to_add > final_v - last_v) {
+
+			size_type new_levels = _std ceil(_std log2((size() + to_add))) - _std ceil(_std log2(size()));
+
+		}
+
+	}
 
 public:
 
-	iterator insert(iterator, const value_type&);
+	iterator insert(iterator, const value_type&) {
+
+
+
+	}
 	iterator_depth insert(iterator_depth, const value_type&);
 	iterator insert(iterator, const value_type&&);
 	iterator_depth insert(iterator_depth, const value_type&&);
@@ -396,7 +408,7 @@ private:
 		auto r = _right(ptr);
 		_pointer_type largest = *l > *r ? l : r;
 		// float down while current node is smaller than a child and not in final row
-		for (; *largest > *ptr && (ptr - first_v <= (size() + 1) / 2);) {
+		for (; *largest > *ptr && (ptr - first_v < (size() + 1) / 2);) {
 			_std swap(*ptr, *largest);
 			ptr = largest;
 			l = _left(ptr);
@@ -469,7 +481,7 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 		num_bottom_pairs =  _std pow(2, i) / 8; // divide by 8 to avoide negative i
 		size_type num_spaces = (3 * num_bottom_pairs * max_size) + (max_size * (num_bottom_pairs - 1));
 
-		// add to accumulator <out>
+		// add to accumulator <out> for every element in <pq>
 		for (size_type j = 0; j != size_type(_std pow(2, num_level - i)); ++j) {
 			out << _std string(num_spaces, ' ');
 			out << *curr;
