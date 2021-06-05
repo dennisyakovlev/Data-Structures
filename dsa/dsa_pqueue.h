@@ -96,6 +96,10 @@ struct PriorityQueueBreadthIterator : ConstPriorityQueueBreadthIterator<Priority
 		return static_cast<_iter_ref>(base::operator++());
 	}
 
+	_iter_ref operator-- () {
+		return static_cast<_iter_ref>(base::operator--());
+	}
+
 };
 
 template<typename PriorityQueue>
@@ -285,6 +289,27 @@ public:
 
 	}
 
+private:
+
+	void _delete_all(_pointer_type first, _pointer_type last, _pointer_type final) {
+
+		_pointer_type temp = first;
+		for (; temp != last; ++temp) {
+			_std destroy_at(temp);
+		}
+		size_type sz = final - first;
+		_alloc_traits::deallocate(al, first, sz);
+
+	}
+
+public:
+
+	~PriorityQueue() {
+
+		_delete_all(first_v, last_v, final_v);
+
+	}
+
 	PriorityQueue& operator= (const PriorityQueue&);
 	PriorityQueue& operator= (const PriorityQueue&&);
 	PriorityQueue& operator= (const value_type&);
@@ -366,8 +391,22 @@ private:
 	void _alloc_if_needed(size_type to_add) {
 
 		if (to_add > final_v - last_v) {
+			print("Needed");
+			//size_type num_new = _std pow(2, _std floor(_std log2(size() + to_add)) + 1) - 1;
+			size_type num_new = _size_from_size(size() + to_add);
 
-			size_type new_levels = _std ceil(_std log2((size() + to_add))) - _std ceil(_std log2(size()));
+			_pointer_type new_first = _alloc_traits::allocate(al, num_new);
+			_pointer_type old_first = first_v;
+			_pointer_type old_last = last_v;
+			_pointer_type old_final = final_v;
+
+			first_v = new_first;
+			last_v = first_v;
+			final_v = first_v + num_new;
+
+			_construct_range(old_first, old_last);
+			
+			_delete_all(old_first, old_last, old_final);
 
 		}
 
@@ -375,24 +414,39 @@ private:
 
 public:
 
-	iterator insert(iterator, const value_type&) {
+	iterator insert(iterator iter, const value_type& val) {
 
+		_alloc_if_needed(1);
 
+		return iter;
 
 	}
-	iterator_depth insert(iterator_depth, const value_type&);
-	iterator insert(iterator, const value_type&&);
-	iterator_depth insert(iterator_depth, const value_type&&);
-	iterator insert(iterator, size_type, const value_type&);
-	iterator_depth insert(iterator_depth, size_type, const value_type&);
-	template<typename Iter> // enable if
-	iterator insert(iterator, Iter, Iter);
-	template<typename Iter> // enable if
-	iterator_depth insert(iterator_depth, Iter, Iter);
-	template<typename Val> // enable if
-	iterator insert(iterator, _std initializer_list<Val>);
-	template<typename Val> // enable if
-	iterator_depth insert(iterator_depth, _std initializer_list<Val>);
+	//iterator_depth insert(iterator_depth, const value_type&);
+	//iterator insert(iterator, const value_type&&);
+	//iterator_depth insert(iterator_depth, const value_type&&);
+	
+	iterator insert(iterator iter, size_type sz, const value_type& val) {
+
+		_alloc_if_needed(sz);
+		_construct_size(sz, last_v, val);
+
+		for (; sz != 0; --sz, ++last_v) {
+			_float_up(iterator(last_v));
+		}
+
+		return iter;
+
+	}
+
+	//iterator_depth insert(iterator_depth, size_type, const value_type&);
+	//template<typename Iter> // enable if
+	//iterator insert(iterator, Iter, Iter);
+	//template<typename Iter> // enable if
+	//iterator_depth insert(iterator_depth, Iter, Iter);
+	//template<typename Val> // enable if
+	//iterator insert(iterator, _std initializer_list<Val>);
+	//template<typename Val> // enable if
+	//iterator_depth insert(iterator_depth, _std initializer_list<Val>);
 
 	size_type size() const {
 		 
@@ -400,9 +454,9 @@ public:
 
 	}
 
-private:
+//private:
 
-	void _float_down(iterator iter, bool p = false) {
+	void _float_down(iterator iter) {
 
 		_pointer_type ptr = static_cast<_PriorityQueue_Iter_Base<PriorityQueue>>(iter).elem;
 		auto l = _left(ptr);
@@ -418,6 +472,19 @@ private:
 			r = _right(ptr);
 			largest = *l > *r ? l : r;
 		}		
+
+	}
+
+	void _float_up(iterator iter) {
+
+		_pointer_type ptr = static_cast<_PriorityQueue_Iter_Base<PriorityQueue>>(iter).elem;
+		_pointer_type parent = first_v + size_type(_std floor((ptr - first_v) / 2));
+
+		for (; *parent < *ptr && ptr != first_v;) {
+			_std swap(*ptr, *parent);
+			ptr = parent;
+			parent = first_v + size_type(_std floor((ptr - first_v) / 2));
+		}
 
 	}
 
@@ -449,7 +516,7 @@ PriorityQueue(Iter, Iter, Alloc_New)->PriorityQueue<typename Iter::value_type, A
 template<typename sz_type, typename T_Same, typename Alloc_New>
 PriorityQueue(sz_type, T_Same, Alloc_New)->PriorityQueue<T_Same, Alloc_New>;
 
-// output operator and functions s
+// output operator and functions
 template<typename T, typename Alloc>
 auto _max_len(const PriorityQueue<T, Alloc>& pq) {
 
@@ -464,6 +531,17 @@ auto _max_len(const PriorityQueue<T, Alloc>& pq) {
 	}
 
 	return max_len;
+
+}
+
+template<typename T>
+auto _elem_len(const T& elem) {
+
+	using str_size = _std string::size_type;
+
+	_std stringstream ss;
+	ss << elem;
+	return ss.str().size();
 
 }
 
@@ -491,11 +569,12 @@ _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
 		for (size_type j = 0; j != size_type(_std pow(2, num_level - i)); ++j) {
 			out << _std string(num_spaces, ' ');
 			if (curr != pq.end()) {
+				out << _std string(max_size - _elem_len(*curr), '_');
 				out << *curr;
 				++curr;
 			}
 			else {
-				out << "N";
+				out << _std string(max_size, '_');
 			}
 			out << _std string(num_spaces, ' ');
 			out << _std string(max_size, ' ');
