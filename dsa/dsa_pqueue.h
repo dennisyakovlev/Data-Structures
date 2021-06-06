@@ -47,31 +47,32 @@ struct _PriorityQueue_Iter_Base {
 template<typename PriorityQueue>
 struct ConstPriorityQueueBreadthIterator : _PriorityQueue_Iter_Base<PriorityQueue> {
 
-	using base = _PriorityQueue_Iter_Base<PriorityQueue>;
-	using iterator_category = typename base::iterator_category;
-	using difference_type = typename base::difference_type;
-	using value_type = typename base::value_type;
-	using pointer = typename base::pointer;
-	using reference = typename base::reference;
+	using _base = _PriorityQueue_Iter_Base<PriorityQueue>;
+
+	using iterator_category = typename _base::iterator_category;
+	using difference_type = typename _base::difference_type;
+	using value_type = typename _base::value_type;
+	using pointer = typename _base::pointer;
+	using reference = typename _base::reference;
 	using iterator_type = breadth_iterator_tag;
 
 	using _iter = ConstPriorityQueueBreadthIterator;
 	using _iter_ref = _iter&;
 
-	using base::base;
+	using _base::_base;
 
 	_iter_ref operator++ () {
-		++(reinterpret_cast<base*>(this)->elem);
+		++(reinterpret_cast<_base*>(this)->elem);
 		return *this;
 	}
 
 	_iter_ref operator-- () {
-		--(reinterpret_cast<base*>(this)->elem);
+		--(reinterpret_cast<_base*>(this)->elem);
 		return *this;
 	}
 
 	reference operator* () {
-		return **(reinterpret_cast<base*>(this));
+		return **(reinterpret_cast<_base*>(this));
 	}
 
 };
@@ -79,25 +80,25 @@ struct ConstPriorityQueueBreadthIterator : _PriorityQueue_Iter_Base<PriorityQueu
 template<typename PriorityQueue>
 struct PriorityQueueBreadthIterator : ConstPriorityQueueBreadthIterator<PriorityQueue> {
 
-	using base = ConstPriorityQueueBreadthIterator<PriorityQueue>;
-	using iterator_category = typename base::iterator_category;
-	using difference_type = typename base::difference_type;
-	using value_type = typename base::value_type;
-	using pointer = typename base::pointer;
-	using reference = typename base::reference;
-	using iterator_type = typename base::iterator_type;
+	using _base = ConstPriorityQueueBreadthIterator<PriorityQueue>;
+	using iterator_category = typename _base::iterator_category;
+	using difference_type = typename _base::difference_type;
+	using value_type = typename _base::value_type;
+	using pointer = typename _base::pointer;
+	using reference = typename _base::reference;
+	using iterator_type = typename _base::iterator_type;
 
-	using base::base;
+	using _base::_base;
 
 	using _iter = PriorityQueueBreadthIterator;
 	using _iter_ref = _iter&;
 
 	_iter_ref operator++ () {
-		return static_cast<_iter_ref>(base::operator++());
+		return static_cast<_iter_ref>(_base::operator++());
 	}
 
 	_iter_ref operator-- () {
-		return static_cast<_iter_ref>(base::operator--());
+		return static_cast<_iter_ref>(_base::operator--());
 	}
 
 };
@@ -105,30 +106,30 @@ struct PriorityQueueBreadthIterator : ConstPriorityQueueBreadthIterator<Priority
 template<typename PriorityQueue>
 struct ConstPriorityQueueDepthIterator : _PriorityQueue_Iter_Base<PriorityQueue> {
 
-	using base = _PriorityQueue_Iter_Base<PriorityQueue>;
-	using iterator_category = typename base::iterator_category;
-	using difference_type = typename base::difference_type;
-	using value_type = typename base::value_type;
-	using pointer = typename base::pointer;
-	using reference = typename base::reference;
+	using _base = _PriorityQueue_Iter_Base<PriorityQueue>;
+	using iterator_category = typename _base::iterator_category;
+	using difference_type = typename _base::difference_type;
+	using value_type = typename _base::value_type;
+	using pointer = typename _base::pointer;
+	using reference = typename _base::reference;
 	using iterator_type = depth_iterator_tag;
 
-	using base::base;
+	using _base::_base;
 
 };
 
 template<typename PriorityQueue>
 struct PriorityQueueDepthIterator : ConstPriorityQueueDepthIterator<PriorityQueue> {
 
-	using base = ConstPriorityQueueDepthIterator<PriorityQueue>;
-	using iterator_category = typename base::iterator_category;
-	using difference_type = typename base::difference_type;
-	using value_type = typename base::value_type;
-	using pointer = typename base::pointer;
-	using reference = typename base::reference;
-	using iterator_type = typename base::iterator_type;
+	using _base = ConstPriorityQueueDepthIterator<PriorityQueue>;
+	using iterator_category = typename _base::iterator_category;
+	using difference_type = typename _base::difference_type;
+	using value_type = typename _base::value_type;
+	using pointer = typename _base::pointer;
+	using reference = typename _base::reference;
+	using iterator_type = typename _base::iterator_type;
 
-	using base::base;
+	using _base::_base;
 
 };
 
@@ -390,9 +391,9 @@ private:
 
 	void _alloc_if_needed(size_type to_add) {
 
-		if (to_add > final_v - last_v) {
-			print("Needed");
-			//size_type num_new = _std pow(2, _std floor(_std log2(size() + to_add)) + 1) - 1;
+		// cast to size_type should be safe
+		if (to_add > static_cast<size_type>(final_v - last_v)) {
+
 			size_type num_new = _size_from_size(size() + to_add);
 
 			_pointer_type new_first = _alloc_traits::allocate(al, num_new);
@@ -411,6 +412,8 @@ private:
 		}
 
 	}
+
+
 
 public:
 
@@ -438,7 +441,11 @@ public:
 
 	}
 
-	//iterator_depth insert(iterator_depth, size_type, const value_type&);
+	iterator_depth insert(iterator_depth, size_type, const value_type&) {
+
+
+
+	}
 	//template<typename Iter> // enable if
 	//iterator insert(iterator, Iter, Iter);
 	//template<typename Iter> // enable if
@@ -454,30 +461,30 @@ public:
 
 	}
 
-//private:
+private:
 
 	void _float_down(iterator iter) {
 
-		_pointer_type ptr = static_cast<_PriorityQueue_Iter_Base<PriorityQueue>>(iter).elem;
+		_pointer_type ptr = _unwrap_iter(iter);
 		auto l = _left(ptr);
 		auto r = _right(ptr);
 		_pointer_type largest = *l > *r ? l : r;
 		const size_type begin_last = size_type(_std pow(2, _std floor(_std log2(size()))) - 1);
 
 		// float down while current node is smaller than a child and not in final row
-		for (; *largest > *ptr && (ptr - first_v < begin_last);) {
+		for (;  *largest > *ptr && (ptr - first_v < begin_last);) {
+			largest = *l > *r ? l : r; // possible dereference error if after l and r get assigned
 			_std swap(*ptr, *largest);
 			ptr = largest;
 			l = _left(ptr);
 			r = _right(ptr);
-			largest = *l > *r ? l : r;
 		}		
 
 	}
 
 	void _float_up(iterator iter) {
 
-		_pointer_type ptr = static_cast<_PriorityQueue_Iter_Base<PriorityQueue>>(iter).elem;
+		_pointer_type ptr = _unwrap_iter(iter);
 		_pointer_type parent = first_v + size_type(_std floor((ptr - first_v) / 2));
 
 		for (; *parent < *ptr && ptr != first_v;) {
@@ -489,15 +496,15 @@ public:
 	}
 
 	void _build_heap() {
-		const size_type sz = size_type(_std floor((last_v - first_v) / 2)) - 1;
-		iterator iter = iterator(first_v + sz);
-		const iterator beg = begin();
-		
-		for (; iter != beg; --iter) {
-			_float_down(iter);
-		}
-		_float_down(iter);
 
+		const size_type sz = (last_v - first_v) / 2;
+		iterator iter = iterator(first_v + sz);
+		const iterator end_iter = end();
+		
+		for (; iter != end_iter; ++iter) {
+			_float_up(iter);
+		}
+		
 	}
 
 	_pointer_type first_v;
@@ -545,25 +552,28 @@ auto _elem_len(const T& elem) {
 
 }
 
+// Meant for visualization, not optimized or completely type safe
 template<typename T, typename Alloc>
 _std ostream& operator<< (_std ostream& out, const PriorityQueue<T, Alloc> pq) {
-
+	
 	using PQueue = PriorityQueue<T, Alloc>;
 	using size_type = typename PQueue::size_type;
 	using const_iterator = typename PQueue::const_iterator;
 
 	auto max_size = _max_len(pq); // output relative to longest element in pqueue
 	const_iterator curr = pq.cbegin();
-	size_type num_level(_std ceil(_std log2(pq.size() + 1)));
-	double num_bottom_pairs = 0; // should be okay since this is at most pq.size() / 4
-								 // and size_type is std::size_t, which is unsigned int
+	size_type num_level = static_cast<size_type>(_std log2(pq.size()) + 1); // safe to cast to smalelr double
+																			// since log2 make pq.size() much smaller
+	double num_bottom_pairs = 0; // kind of iffy since this is at most pq.size() / 4
+								 // for large sizes errors will occur
 
 	// for number of level
 	for (size_type i = num_level; i != 0; --i) {
 		
 		// get number of spaces
 		num_bottom_pairs =  _std pow(2, i) / 8; // divide by 8 to avoid negative i
-		size_type num_spaces = (3 * num_bottom_pairs * max_size) + (max_size * (num_bottom_pairs - 1));
+		// not as safe to use double since num spaces
+		size_type num_spaces = static_cast<size_type>((3 * num_bottom_pairs * max_size) + (max_size * (num_bottom_pairs - 1)));
 
 		// add to accumulator <out> for every element in <pq>
 		for (size_type j = 0; j != size_type(_std pow(2, num_level - i)); ++j) {
