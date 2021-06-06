@@ -413,22 +413,7 @@ private:
 
 	}
 
-
-
-public:
-
-	iterator insert(iterator iter, const value_type& val) {
-
-		_alloc_if_needed(1);
-
-		return iter;
-
-	}
-	//iterator_depth insert(iterator_depth, const value_type&);
-	//iterator insert(iterator, const value_type&&);
-	//iterator_depth insert(iterator_depth, const value_type&&);
-	
-	iterator insert(iterator iter, size_type sz, const value_type& val) {
+	void _insert_size(size_type sz, const value_type& val) {
 
 		_alloc_if_needed(sz);
 		_construct_size(sz, last_v, val);
@@ -437,23 +422,112 @@ public:
 			_float_up(iterator(last_v));
 		}
 
+	}
+
+public:
+
+	iterator insert(iterator iter, const value_type& val) {
+
+		_insert_size(1, val);
 		return iter;
 
 	}
 
-	iterator_depth insert(iterator_depth, size_type, const value_type&) {
+	iterator_depth insert(iterator_depth iter, const value_type& val) {
 
-
+		_insert_size(1, val);
+		return iter;
 
 	}
-	//template<typename Iter> // enable if
-	//iterator insert(iterator, Iter, Iter);
-	//template<typename Iter> // enable if
-	//iterator_depth insert(iterator_depth, Iter, Iter);
-	//template<typename Val> // enable if
-	//iterator insert(iterator, _std initializer_list<Val>);
-	//template<typename Val> // enable if
-	//iterator_depth insert(iterator_depth, _std initializer_list<Val>);
+	
+	iterator insert(iterator iter, size_type sz, const value_type& val) {
+
+		_insert_size(sz, val);
+		return iter;
+
+	}
+
+	iterator_depth insert(iterator_depth iter, size_type sz, const value_type& val) {
+
+		_insert_size(sz, val);
+		return iter;
+
+	}
+	
+private:
+
+	void _insert_move(value_type&& val) {
+
+		_alloc_if_needed(1);
+		_std construct_at(last_v, _std move(val));
+		_float_up(last_v);
+		++last_v;
+
+	}
+
+public:
+
+	iterator insert(iterator iter, value_type&& val) {
+
+		_insert_move(_std move(val));
+		return iter;
+
+	}
+
+	iterator_depth insert(iterator_depth iter, value_type&& val) {
+
+		_insert_move(_std move(val));
+		return iter;
+
+	}
+
+private:
+
+	template<typename Iter>
+	void _insert_range(Iter first, Iter last) {
+
+		// iterator different type to size type, should be safe
+		size_type sz = static_cast<size_type>(_std distance(first, last));
+		_alloc_if_needed(sz);
+
+		for (; sz != 0; --sz, ++last_v, ++first) {
+			_std construct_at(last_v, *first);
+			_float_up(iterator(last_v));
+		}
+
+	}
+
+public:
+
+	template<typename Iter, typename = _is_valid_iterator<Iter>>
+	iterator insert(iterator iter, Iter first, Iter last) {
+
+		_insert_range(first, last);
+		return iter;
+
+	}
+
+	template<typename Iter, typename = _is_valid_iterator<Iter>>
+	iterator_depth insert(iterator_depth iter, Iter first, Iter last) {
+
+		_insert_range(first, last);
+		return iter;
+
+	}
+
+	iterator insert(iterator iter, _std initializer_list<value_type> lis) {
+
+		_insert_range(lis.begin(), lis.end());
+		return iter;
+
+	}
+	
+	iterator_depth insert(iterator_depth iter, _std initializer_list<value_type> lis) {
+
+		_insert_range(lis.begin(), lis.end());
+		return iter;
+
+	}
 
 	size_type size() const {
 		 
