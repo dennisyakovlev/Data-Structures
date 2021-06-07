@@ -9,7 +9,8 @@ Integer_Integral_Type exp_unsigned_int(Integer_Integral_Type base, Integer_Integ
 
 	Integer_Integral_Type res = 1;
 	while (exp != 0) {
-		if (exp % 2 == 1) {
+		
+        if (exp % 2 == 1) {
 			res = base * res;
 		}
 		exp /= 2;
