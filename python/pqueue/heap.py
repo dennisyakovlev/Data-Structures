@@ -81,5 +81,6 @@ def max_heapify(heap: Heap, i: int) -> None:
 
 def build_max_heap(heap: Heap) -> None:
     size = len(heap)
+    print(math.floor(size / 2))
     for i in range(math.floor(size / 2), -1, -1):
         max_heapify(heap, i)
