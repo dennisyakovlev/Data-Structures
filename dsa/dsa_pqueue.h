@@ -13,12 +13,17 @@
 #include <dsa_memory.h>
 #include <dsa_memory_traits.h>
 #include <dsa_iterator_traits.h>
+#include <dsa_algorithms.h>
 
 #define _left(ptr) first_v + ((2 * (ptr - first_v)) + 1);
 #define _right(ptr) first_v + ((2 * (ptr - first_v)) + 2);
 #define _valid_pointer(ptr) ptr <= last_v && ptr >= first_v
 #define _alloc_pqueue(alloc, size) _alloc_traits::allocate(alloc, size)
 #define _dealloc_pqueue(alloc, pointer, size) _alloc_traits::deconstruct(alloc, pointer, size)
+
+#define _priorityqueue_left(first, curr) (first + (2 * (curr - first)) + 1)
+#define _priorityqueue_right(first, curr) (_priorityqueue_left(first, curr) + 1)
+#define _priorityqueue_parent(first, curr) (first + (((curr - first) - 1) / 2))
 
 _begin_dsa
 
@@ -62,17 +67,23 @@ struct ConstPriorityQueueBreadthIterator : _PriorityQueue_Iter_Base<PriorityQueu
 	using _base::_base;
 
 	_iter_ref operator++ () {
-		++(reinterpret_cast<_base*>(this)->elem);
+
+		++reinterpret_cast<_base*>(this)->elem;
 		return *this;
+
 	}
 
 	_iter_ref operator-- () {
+
 		--(reinterpret_cast<_base*>(this)->elem);
 		return *this;
+
 	}
 
 	reference operator* () {
-		return **(reinterpret_cast<_base*>(this));
+		
+		return _base::operator*();
+	
 	}
 
 };
@@ -81,6 +92,7 @@ template<typename PriorityQueue>
 struct PriorityQueueBreadthIterator : ConstPriorityQueueBreadthIterator<PriorityQueue> {
 
 	using _base = ConstPriorityQueueBreadthIterator<PriorityQueue>;
+	
 	using iterator_category = typename _base::iterator_category;
 	using difference_type = typename _base::difference_type;
 	using value_type = typename _base::value_type;
@@ -101,12 +113,19 @@ struct PriorityQueueBreadthIterator : ConstPriorityQueueBreadthIterator<Priority
 		return static_cast<_iter_ref>(_base::operator--());
 	}
 
+	reference operator* () {
+		
+		return _base::operator*();
+	
+	}
+
 };
 
 template<typename PriorityQueue>
 struct ConstPriorityQueueDepthIterator : _PriorityQueue_Iter_Base<PriorityQueue> {
 
 	using _base = _PriorityQueue_Iter_Base<PriorityQueue>;
+	
 	using iterator_category = typename _base::iterator_category;
 	using difference_type = typename _base::difference_type;
 	using value_type = typename _base::value_type;
@@ -114,7 +133,82 @@ struct ConstPriorityQueueDepthIterator : _PriorityQueue_Iter_Base<PriorityQueue>
 	using reference = typename _base::reference;
 	using iterator_type = depth_iterator_tag;
 
-	using _base::_base;
+	using _iter = ConstPriorityQueueDepthIterator;
+	using _iter_ref = _iter&;
+	using _size_type = typename PriorityQueue::size_type;
+
+	ConstPriorityQueueDepthIterator(pointer elem, pointer first, pointer last)
+		: _base(elem), start(first), end(last), unvisited(last - elem) {}
+
+	_iter_ref operator++ () {
+
+		// might be relying on fact that variables of class are allocated in sequence in memory
+		//verify later
+		pointer& ptr = reinterpret_cast<_base*>(this)->elem;
+		
+		if (unvisited - 1 == 0) {
+			ptr = end;
+			--unvisited;
+			return *this;
+		}
+
+		--unvisited;
+		if (ptr - start >= (end - start) / 2) { // on a leaf
+			while (_priorityqueue_right(start, _priorityqueue_parent(start, ptr)) == ptr ||
+				   _priorityqueue_right(start, _priorityqueue_parent(start, ptr)) == end) { // incase bottom row is not fully filled
+																							// and on left child
+				ptr = _priorityqueue_parent(start, ptr);
+			}
+			++ptr; 
+			return *this;
+		}
+		ptr = _priorityqueue_left(start, ptr); // not on bottom row, go to left child
+		return *this;
+
+	}
+
+	_iter_ref operator-- () {
+
+		// might be relying on fact that variables of class are allocated in sequence in memory
+		//verify later
+		pointer& ptr = reinterpret_cast<_base*>(this)->elem;
+
+		if (unvisited == 0) {
+			--ptr;
+			++unvisited;
+			return *this;
+		}
+
+		if (unvisited == end - start) {
+			--ptr;
+			++unvisited;
+			return *this;
+		}
+
+		++unvisited;
+		// index of parent + 2 is half of the current index + 2
+		if (((_priorityqueue_parent(start, ptr) - start) + 2) == (((ptr - start) + 2) / 2)) {
+			--ptr; // go to left child
+			while (ptr - start < (end - start) / 2) { // go down until leaf reached
+				ptr = _priorityqueue_right(start, ptr);
+			}
+			return *this;
+		}
+		ptr = _priorityqueue_parent(start, ptr); // not on bottom row, go to parent child
+		return *this;
+	}
+
+	reference operator* () {
+
+		return _base::operator*();
+
+	}
+
+private:
+
+	pointer start;
+	pointer end;
+	_size_type unvisited;
 
 };
 
@@ -135,7 +229,9 @@ struct PriorityQueueDepthIterator : ConstPriorityQueueDepthIterator<PriorityQueu
 
 template<typename PriorityQueue>
 bool operator!= (_PriorityQueue_Iter_Base<PriorityQueue> l, _PriorityQueue_Iter_Base<PriorityQueue> r) {
+	
 	return l.elem != r.elem;
+
 }
 
 template<typename PriorityQueue>
@@ -156,11 +252,13 @@ public:
 	using reference = value_type&;
 	using conse_reference = const reference;
 	using iterator = PriorityQueueBreadthIterator<PriorityQueue>;
+	using reverse_iterator = _std reverse_iterator<iterator>;
 	using const_iterator = ConstPriorityQueueBreadthIterator<PriorityQueue>;
+	using const_reverse_iterator = _std reverse_iterator<const_iterator>;
 	using iterator_depth = PriorityQueueDepthIterator<PriorityQueue>;
+	using reverse_iterator_depth = _std reverse_iterator<iterator_depth>;
 	using const_iterator_depth = ConstPriorityQueueDepthIterator<PriorityQueue>;
-    // using reverse_iterator = XXX
-    // using const_reverse_iterator = XXX
+	using const_reverse_iterator_depth = _std reverse_iterator<const_iterator_depth>;
 	using size_type = _std size_t;
 
 	using _alloc_traits = _std_alloc_traits<allocator_type>;
@@ -314,41 +412,41 @@ public:
 	PriorityQueue& operator= (const PriorityQueue&);
 	PriorityQueue& operator= (const PriorityQueue&&);
 	PriorityQueue& operator= (const value_type&);
-	
+
 	iterator begin() {
 		
 		return iterator(first_v);
 	
 	}
 	
-	iterator begin() const {
+	const_iterator begin() const {
 		
-		return iterator(first_v);
-	
-	}
-
-	iterator_depth begin(depth_iterator_tag) {
-		
-		return iterator_depth(first_v);
+		return const_iterator(first_v);
 	
 	}
 	
-	iterator_depth begin(depth_iterator_tag) const {
-
-		return iterator_depth(first_v);
-
-	}
-
 	const_iterator cbegin() const {
 		
 		return const_iterator(first_v);
 	
 	}
 	
-	const_iterator_depth cbegin(depth_iterator_tag) const {
+	reverse_iterator rbegin() {
+
+		return reverse_iterator(end());
+
+	}
+
+	const_reverse_iterator rbegin() const {
 		
-		return const_iterator_depth(first_v);
-	
+		return const_reverse_iterator(end());
+
+	}
+
+	const_reverse_iterator crbegin() const {
+
+		return const_reverse_iterator(end());
+
 	}
 
 	iterator end() {
@@ -357,22 +455,10 @@ public:
 	
 	}
 
-	iterator end() const {
+	const_iterator end() const {
 		
-		return iterator(last_v);
+		return const_iterator(last_v);
 	
-	}
-	
-	iterator_depth end(depth_iterator_tag) {
-		
-		return iterator_depth(last_v);
-	
-	}
-	
-	iterator_depth end(depth_iterator_tag) const {
-
-		return iterator_depth(last_v);
-
 	}
 
 	const_iterator cend() const {
@@ -380,11 +466,96 @@ public:
 		return const_iterator(last_v);
 	
 	}
-	
+
+	reverse_iterator rend() {
+
+		return reverse_iterator(begin());
+
+	}
+
+	const_reverse_iterator rend() const {
+
+		return const_reverse_iterator(begin());
+
+	}
+
+	const_reverse_iterator crend() const {
+
+		return const_reverse_iterator(begin());
+
+	}
+
+	iterator_depth begin(depth_iterator_tag) {
+
+		return iterator_depth(first_v, first_v, last_v);
+
+	}
+
+	const_iterator_depth begin(depth_iterator_tag) const {
+
+		return const_iterator_depth(first_v, first_v, last_v);
+
+	}
+
+	const_iterator_depth cbegin(depth_iterator_tag) const {
+
+		return begin(depth_iterator_tag());
+
+	}
+
+	reverse_iterator_depth rbegin(depth_iterator_tag) {
+
+		return reverse_iterator_depth(end(depth_iterator_tag()));
+
+	}
+
+	const_reverse_iterator_depth rbegin(depth_iterator_tag) const {
+
+		return const_reverse_iterator_depth(end(depth_iterator_tag()));
+
+	}
+
+	const_reverse_iterator_depth crbegin(depth_iterator_tag) const {
+
+		return const_reverse_iterator_depth(rbegin(depth_iterator_tag()));
+
+	}
+
+	iterator_depth end(depth_iterator_tag) {
+
+		return iterator_depth(last_v, first_v, last_v);
+
+	}
+
+	const_iterator_depth end(depth_iterator_tag) const {
+
+		return const_iterator_depth(last_v, first_v, last_v);
+
+	}
+
 	const_iterator_depth cend(depth_iterator_tag) const {
+
+		return end(depth_iterator_tag());
+
+	}
+
+	reverse_iterator_depth rend(depth_iterator_tag) {
+
+		return reverse_iterator_depth(begin(depth_iterator_tag()));
 		
-		return const_iterator_depth(last_v);
-	
+	}
+
+	const_reverse_iterator_depth rend(depth_iterator_tag) const {
+
+		return const_reverse_iterator_depth(begin(depth_iterator_tag()));
+
+	}
+
+	const_reverse_iterator_depth crend(depth_iterator_tag) const {
+
+		return const_reverse_iterator_depth(rend(depth_iterator_tag()));
+
+
 	}
 
 private:
@@ -590,12 +761,6 @@ private:
 
 template<typename Iter>
 PriorityQueue(Iter, Iter)->PriorityQueue<typename Iter::value_type>;
-
-template<typename Iter, typename Alloc_New>
-PriorityQueue(Iter, Iter, Alloc_New)->PriorityQueue<typename Iter::value_type, Alloc_New>;
-
-template<typename sz_type, typename T_Same, typename Alloc_New>
-PriorityQueue(sz_type, T_Same, Alloc_New)->PriorityQueue<T_Same, Alloc_New>;
 
 // output operator and functions
 template<typename T, typename Alloc>
