@@ -15,12 +15,6 @@
 #include <dsa_iterator_traits.h>
 #include <dsa_algorithms.h>
 
-#define _left(ptr) first_v + ((2 * (ptr - first_v)) + 1);
-#define _right(ptr) first_v + ((2 * (ptr - first_v)) + 2);
-#define _valid_pointer(ptr) ptr <= last_v && ptr >= first_v
-#define _alloc_pqueue(alloc, size) _alloc_traits::allocate(alloc, size)
-#define _dealloc_pqueue(alloc, pointer, size) _alloc_traits::deconstruct(alloc, pointer, size)
-
 #define _priorityqueue_left(first, curr) (first + (2 * (curr - first)) + 1)
 #define _priorityqueue_right(first, curr) (_priorityqueue_left(first, curr) + 1)
 #define _priorityqueue_parent(first, curr) (first + (((curr - first) - 1) / 2))
@@ -174,12 +168,19 @@ struct ConstPriorityQueueDepthIterator : _PriorityQueue_Iter_Base<PriorityQueue>
 		pointer& ptr = reinterpret_cast<_base*>(this)->elem;
 
 		if (unvisited == 0) {
-			--ptr;
+			// assumes sizeof(double) >= sizeof(priority::size_type)
+			ptr = start + static_cast<_std make_unsigned_t<difference_type>>(_std pow(2, _std floor(_std log2(end - start))) - 2);
+			auto diff = (end - start) - (_priorityqueue_left(start, ptr) - start);
+
+			if (diff > 0) {
+				ptr = end - 1;
+			}
+			
 			++unvisited;
 			return *this;
 		}
 
-		if (unvisited == end - start) {
+		if (unvisited == static_cast<_std make_unsigned_t<difference_type>>(end - start)) {
 			--ptr;
 			++unvisited;
 			return *this;
@@ -191,6 +192,9 @@ struct ConstPriorityQueueDepthIterator : _PriorityQueue_Iter_Base<PriorityQueue>
 			--ptr; // go to left child
 			while (ptr - start < (end - start) / 2) { // go down until leaf reached
 				ptr = _priorityqueue_right(start, ptr);
+			}
+			if (ptr == end) {
+				--ptr;
 			}
 			return *this;
 		}
@@ -223,20 +227,50 @@ struct PriorityQueueDepthIterator : ConstPriorityQueueDepthIterator<PriorityQueu
 	using reference = typename _base::reference;
 	using iterator_type = typename _base::iterator_type;
 
+	using _iter = ConstPriorityQueueDepthIterator<PriorityQueue>;
+	using _iter_ref = _iter&;
+
 	using _base::_base;
+
+	_iter_ref operator++ () {
+
+		return _base::operator++();
+
+	}
+
+	_iter_ref operator-- () {
+
+		return _base::operator--();
+
+	}
+
+	reference operator* () {
+
+		return _base::operator*();
+
+	}
 
 };
 
 template<typename PriorityQueue>
+bool operator== (_PriorityQueue_Iter_Base<PriorityQueue> l, _PriorityQueue_Iter_Base<PriorityQueue> r) {
+
+	return _unwrap_iter(l) != _unwrap_iter(r);
+
+}
+
+template<typename PriorityQueue>
 bool operator!= (_PriorityQueue_Iter_Base<PriorityQueue> l, _PriorityQueue_Iter_Base<PriorityQueue> r) {
 	
-	return l.elem != r.elem;
+	return _unwrap_iter(l) != _unwrap_iter(r);
 
 }
 
 template<typename PriorityQueue>
 typename PriorityQueue::difference_type operator- (_PriorityQueue_Iter_Base<PriorityQueue> first, _PriorityQueue_Iter_Base<PriorityQueue> second) {
-	return second.elem - first.elem;
+	
+	return _unwrap_iter(second) - _unwrap_iter(first);
+
 }
 
 template<typename T, typename Alloc = _std allocator<T>>
@@ -290,7 +324,7 @@ private:
 	template<typename Iter>
 	void _create_range(Iter begin, Iter end) {
 		auto size = _size_from_size(_std distance(begin, end));
-		first_v = _alloc_pqueue(al, size);
+		first_v = _alloc_traits::allocate(al, size);
 		last_v = first_v;
 		final_v = first_v + size;
 		_construct_range(begin, end);
@@ -298,7 +332,7 @@ private:
 
 	void _create_size(size_type sz, const value_type& val) {
 		auto size = _size_from_size(sz);
-		first_v = _alloc_pqueue(al, size);
+		first_v = _alloc_traits::allocate(al, size);
 		last_v = first_v + sz;
 		final_v = first_v + size;
 		_construct_size(sz, first_v, val);
@@ -630,7 +664,7 @@ private:
 	void _insert_move(value_type&& val) {
 
 		_alloc_if_needed(1);
-		_std construct_at(last_v, _std move(val));
+		_alloc_traits::construct(al, last_v, _std move(val));
 		_float_up(last_v);
 		++last_v;
 
@@ -662,7 +696,7 @@ private:
 		_alloc_if_needed(sz);
 
 		for (; sz != 0; --sz, ++last_v, ++first) {
-			_std construct_at(last_v, *first);
+			_alloc_traits::construct(al, last_v, *first);
 			_float_up(iterator(last_v));
 		}
 
@@ -707,25 +741,6 @@ public:
 	}
 
 private:
-
-	void _float_down(iterator iter) {
-
-		_pointer_type ptr = _unwrap_iter(iter);
-		auto l = _left(ptr);
-		auto r = _right(ptr);
-		_pointer_type largest = *l > *r ? l : r;
-		const size_type begin_last = size_type(_std pow(2, _std floor(_std log2(size()))) - 1);
-
-		// float down while current node is smaller than a child and not in final row
-		for (;  *largest > *ptr && (ptr - first_v < begin_last);) {
-			largest = *l > *r ? l : r; // possible dereference error if after l and r get assigned
-			_std swap(*ptr, *largest);
-			ptr = largest;
-			l = _left(ptr);
-			r = _right(ptr);
-		}		
-
-	}
 
 	void _float_up(iterator iter) {
 
